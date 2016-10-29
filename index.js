@@ -46,27 +46,22 @@ const createIterator = function() {
 };
 
 const staticCase = (options, b, ...args) => {
-  const f = options[b._name];
-  if (f) {
-    const values = b._keys.map(k => b[k]);
-    return f(...[...values, ...args]);
-  } else if (options._) {
+  if (b._name in options) {
+    return options[b._name](...[...b._keys.map(k => b[k]), ...args]);
+  } else if ('_' in options) {
     return options._(b);
-  } else {
-    // caseOn is untyped
-    // so this is possible
-    throw new TypeError('Non exhaustive case statement');
   }
+
+  // caseOn is untyped
+  // so this is possible
+  throw new TypeError('Non exhaustive case statement');
 };
 
 const CaseRecordType = (keys, enums) =>
-  $.RecordType(
-    keys.length ?
-      Object.assign(
-        ...keys.map(k => ({[k]: $.Function(values(enums[k]).concat(a))}))
-      ) :
-      {}
-  );
+  $.RecordType(Object.assign(
+    {},
+    ...keys.map(k => ({[k]: $.Function(values(enums[k]).concat(a))}))
+  ));
 
 const ObjConstructorOf = (prototype, keys, name, r) =>
   Object.assign(Object.create(prototype), r, {
@@ -126,7 +121,7 @@ module.exports = opts => {
     Type.prototype = Object.assign(prototype, {
       '@@type': typeName,
       case: function(o, ...args) {
-        return o._ ?
+        return '_' in o ?
           staticCase.apply(null, [o, this]) :
           instanceCaseDef.apply(this, [o, ...args]);
       },
@@ -143,7 +138,7 @@ module.exports = opts => {
           staticCase);
 
     Type.case = function(o, ...args) {
-      return o._ ?
+      return '_' in o ?
         def('anonymous', {}, [$.Any, $.Any, $.Any], staticCase)
           .apply(null, [o, ...args]) :
         staticCaseDef.apply(this, [o, ...args]);
