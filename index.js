@@ -235,7 +235,6 @@ const Setup = function({check, ENV = T.env}){
         return instanceCaseDef.apply(this, [o, ...args]);
       }
     };
-      /* eslint-disable immutable/no-mutation */
     Type.prototype = Object.assign(
       prototype,
       {
@@ -249,7 +248,6 @@ const Setup = function({check, ENV = T.env}){
       Type.prototype.case.inspect =
       instanceCaseDef.toString;
 
-      /* eslint-enable immutable/no-mutation */
     const staticCaseDef =
       def(
           `${typeName}.case`,
