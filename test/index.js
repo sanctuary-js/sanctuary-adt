@@ -9,6 +9,8 @@ const Z = require('sanctuary-type-classes');
 const UnionType = require('..');
 
 
+const a = $.TypeVariable('a');
+
 const UT = UnionType({checkTypes: true, env: $.env});
 
 const Type = UT.Anonymous;
@@ -70,7 +72,7 @@ test('defining a record type', () => {
 });
 
 test('create instance methods declaratively', () => {
-  const Maybe = Class('Maybe', {Just: [$.Any], Nothing: []}, {
+  const Maybe = Class('Maybe', {Just: [a], Nothing: []}, {
     'fantasy-land/equals'(other) {
       return this._name === 'Nothing' ?
         other._name === 'Nothing' :
@@ -176,7 +178,7 @@ test('Destructuring assignment to extract values', () => {
 });
 
 test('Recursive Union Types', () => {
-  const List = Type({Nil: [], Cons: [$.Any, undefined]});
+  const List = Type({Nil: [], Cons: [a, undefined]});
 
   const toString = List.case({
     Cons: (head, tail) => `${head} : ${toString(tail)}`,
@@ -197,7 +199,7 @@ test('Disabling Type Checking', () => {
 });
 
 test('Use placeholder for cases without matches', () => {
-  const List = Type({Nil: [], Cons: [$.Any, undefined]});
+  const List = Type({Nil: [], Cons: [a, undefined]});
 
   eq(List.case({Cons: () => 'Cons', _: () => 'Nil'}, List.Nil), 'Nil');
   eq(List.Nil.case({Cons: () => 'Cons', _: () => 'Nil'}), 'Nil');
