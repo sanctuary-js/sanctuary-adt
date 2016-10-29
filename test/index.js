@@ -73,10 +73,10 @@ test('defining a record type', () => {
 test('create instance methods', () => {
   const Maybe = Type({Just: [$.Any], Nothing: []});
 
-  Maybe.prototype.map = function(fn) {
+  Maybe.prototype.map = function(f) {
     return Maybe.case({
       Nothing: R.always(Maybe.Nothing()),
-      Just: R.compose(Maybe.Just, fn),
+      Just: R.compose(Maybe.Just, f),
     }, this);
   };
 
@@ -90,10 +90,10 @@ test('create instance methods', () => {
 
 test('create instance methods declaratively', () => {
   const Maybe = Class('Maybe', {Just: [$.Any], Nothing: []}, {
-    map(fn) {
+    map(f) {
       return Maybe.case({
         Nothing: R.always(Maybe.Nothing()),
-        Just: R.compose(Maybe.Just, fn),
+        Just: R.compose(Maybe.Just, f),
       }, this);
     },
   });
