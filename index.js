@@ -28,11 +28,10 @@ const createIterator = function() {
   };
 };
 
-const staticCase = (options, b, ...args) => {
-  return b._name in options ?
+const staticCase = (options, b, ...args) =>
+  b._name in options ?
     options[b._name](...Z.concat(Z.map(k => b[k], b._keys), args)) :
     options._(b);
-};
 
 const ObjConstructorOf = (prototype, keys, name, r) =>
   Object.assign(Object.create(prototype), r, {
