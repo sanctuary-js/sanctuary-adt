@@ -1,5 +1,2 @@
-node_modules
-jsconfig.json
-.eslintrc
-.vscode
 /coverage/
+/node_modules/
