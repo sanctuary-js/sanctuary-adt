@@ -42,14 +42,9 @@ const mapConstrToFn = constraint =>
 
 const BuiltInType = function(t) {
   const mapped = mapConstrToFn(t);
-
-  if (mapped !== t) {
-    return mapped;
-  } else if (t.constructor === Function) {
-    return AutoPredicate(t);
-  } else {
-    return t;
-  }
+  return mapped === t ?
+           t.constructor === Function ? AutoPredicate(t) : t :
+           mapped;
 };
 
 const a = T.TypeVariable('a');
@@ -62,10 +57,10 @@ const createIterator = function() {
 
       const keys = this.val._keys;
 
-      return this.idx === keys.length
-        ? {done: true}
+      return this.idx === keys.length ?
+        {done: true} :
         // eslint-disable-next-line no-plusplus
-        : {value: this.val[keys[this.idx++]]};
+        {value: this.val[keys[this.idx++]]};
     },
   };
 };
@@ -221,11 +216,9 @@ const Setup = function({check, ENV = T.env}) {
           boundStaticCase);
 
     const flexibleInstanceCase = function(o, ...args) {
-      if (o._) {
-        return boundStaticCase.apply(this, [o, ...args]);
-      } else {
-        return instanceCaseDef.apply(this, [o, ...args]);
-      }
+      return o._ ?
+        boundStaticCase.apply(this, [o, ...args]) :
+        instanceCaseDef.apply(this, [o, ...args]);
     };
     Type.prototype = Object.assign(
       prototype,
@@ -247,11 +240,9 @@ const Setup = function({check, ENV = T.env}) {
           staticCase);
 
     const flexibleStaticCase = function(o, ...args) {
-      if (o._) {
-        return curryN(2, staticCase).apply(this, [o, ...args]);
-      } else {
-        return staticCaseDef.apply(this, [o, ...args]);
-      }
+      return o._ ?
+        curryN(2, staticCase).apply(this, [o, ...args]) :
+        staticCaseDef.apply(this, [o, ...args]);
     };
 
     Type.case = flexibleStaticCase;
