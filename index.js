@@ -2,7 +2,7 @@
 
 const curryN = require('ramda/src/curryN');
 const map = require('ramda/src/map');
-const T = require('sanctuary-def');
+const $ = require('sanctuary-def');
 
 
 const B = (f, g) => (...args) => f(g(...args));
@@ -21,17 +21,17 @@ const BuiltInType = function(t) {
     case 'Number':
     case 'Object':
     case 'String':
-      return T[t.name];
+      return $[t.name];
     case 'Array':
-      return T.Array(T.Any);
+      return $.Array($.Any);
     case 'Function':
-      return T.AnyFunction;
+      return $.AnyFunction;
     default:
-      return typeof t === 'function' ? T.NullaryType(`[${t}]`, t) : t;
+      return typeof t === 'function' ? $.NullaryType(`[${t}]`, t) : t;
   }
 };
 
-const a = T.TypeVariable('a');
+const a = $.TypeVariable('a');
 
 const createIterator = function() {
   return {
@@ -62,10 +62,10 @@ const staticCase = function(options, b, ...args) {
 };
 
 const CaseRecordType = function(keys, enums) {
-  return T.RecordType(
+  return $.RecordType(
     keys.length ?
       Object.assign(
-        ...keys.map(k => ({[k]: T.Function(values(enums[k]).concat(a))}))
+        ...keys.map(k => ({[k]: $.Function(values(enums[k]).concat(a))}))
       ) :
       {}
   );
@@ -93,7 +93,7 @@ const CreateCaseConstructor = function(def, prototype, typeName, cases) {
     const isArray = Array.isArray(type);
     const keys = Object.keys(type);
     const types = isArray ? type : values(type);
-    const recordType = T.RecordType(isArray ? zipObj(keys)(types) : type);
+    const recordType = $.RecordType(isArray ? zipObj(keys)(types) : type);
 
     return {
       [`${k}Of`]:
@@ -116,19 +116,19 @@ const boundStaticCase = function(options) {
   return staticCase(options, this);
 };
 
-const Setup = function({check, ENV = T.env}) {
+const Setup = function({check, ENV = $.env}) {
 
-  const def = T.create({checkTypes: check, env: ENV});
+  const def = $.create({checkTypes: check, env: ENV});
 
   const CreateUnionType = function(typeName, rawCases, prototype = {}) {
     //    Type :: Type
-    const Type = T.NullaryType(
+    const Type = $.NullaryType(
       typeName,
       x => x != null && x['@@type'] === typeName
     );
     const keys = Object.keys(rawCases);
     const env = ENV.concat([Type]);
-    const def = T.create({checkTypes: check, env});
+    const def = $.create({checkTypes: check, env});
     const cases = processRawCases(Type, rawCases);
     const createCaseConstructor =
       CreateCaseConstructor(def, prototype, typeName, cases);
@@ -179,20 +179,20 @@ const Setup = function({check, ENV = T.env}) {
   const Named =
     def('UnionType.Named',
         {},
-        [T.String, T.StrMap(T.Any), T.Any],
+        [$.String, $.StrMap($.Any), $.Any],
         CreateUnionType);
 
   const Anonymous =
     def('UnionType.Anonymous',
         {},
-        [T.StrMap(T.Any), T.Any],
+        [$.StrMap($.Any), $.Any],
         enums =>
           CreateUnionType(`(${Object.keys(enums).join(' | ')})`, enums));
 
   const Class =
     def('UnionType.Class',
         {},
-        [T.String, T.StrMap(T.Any), T.Object, T.Any],
+        [$.String, $.StrMap($.Any), $.Object, $.Any],
         CreateUnionType);
 
   return {Anonymous, Named, Class};

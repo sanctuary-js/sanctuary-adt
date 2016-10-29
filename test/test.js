@@ -1,13 +1,13 @@
 'use strict';
 
 const R = require('ramda');
-const T = require('sanctuary-def');
+const $ = require('sanctuary-def');
 const test = require('tape');
 
 const UnionType = require('..');
 
 
-const UT = UnionType({env: T.env, check: true});
+const UT = UnionType({env: $.env, check: true});
 
 const Type = UT.Anonymous;
 const Named = UT.Named;
@@ -34,9 +34,9 @@ test('defining a union type with built ins', t => {
     [() => 1, Function, f => f()],
   ]
   .forEach(
-    ([expected, T, f]) => {
-      const Class = Type({T: [T]});
-      const instance = Class.T(expected);
+    ([expected, $, f]) => {
+      const Class = Type({$: [$]});
+      const instance = Class.$(expected);
       const actual = instance[0];
 
       t.deepEqual(f(expected), f(actual));
@@ -55,7 +55,7 @@ test('defining a record type', t => {
 });
 
 test('create instance methods', t => {
-  const Maybe = Type({Just: [T.Any], Nothing: []});
+  const Maybe = Type({Just: [$.Any], Nothing: []});
 
   Maybe.prototype.map = function(fn) {
     return Maybe.case({
@@ -75,7 +75,7 @@ test('create instance methods', t => {
 
 
 test('create instance methods declaratively', t => {
-  const Maybe = Class('Maybe', {Just: [T.Any], Nothing: []}, {
+  const Maybe = Class('Maybe', {Just: [$.Any], Nothing: []}, {
     map(fn) {
       return Maybe.case({
         Nothing: R.always(Maybe.Nothing()),
@@ -108,7 +108,7 @@ test('Fields can be described in terms of other types', t => {
 });
 
 test('The values of a type can also have no fields at all', t => {
-  const NotifySetting = Type({Mute: [], Vibrate: [], Sound: [T.Number]});
+  const NotifySetting = Type({Mute: [], Vibrate: [], Sound: [$.Number]});
 
   t.equal('Mute', NotifySetting.Mute()._name);
   t.end();
@@ -155,10 +155,10 @@ test('Switching on union types', t => {
 });
 
 test('Switch on union types point free', t => {
-  const Point = Type({Point: {x: T.Number, y: T.Number}});
+  const Point = Type({Point: {x: $.Number, y: $.Number}});
 
   const Shape = Type({
-    Circle: [T.Number, Point],
+    Circle: [$.Number, Point],
     Rectangle: [Point, Point],
   });
 
@@ -212,7 +212,7 @@ test('Destructuring assignment to extract values', t => {
 });
 
 test('Recursive Union Types', t => {
-  const List = Type({Nil: [], Cons: [T.Any, undefined]});
+  const List = Type({Nil: [], Cons: [$.Any, undefined]});
 
   const toString = List.case({
     Cons: (head, tail) => `${head} : ${toString(tail)}`,
@@ -226,7 +226,7 @@ test('Recursive Union Types', t => {
 });
 
 test('Disabling Type Checking', t => {
-  const Type = UnionType({env: T.env, check: false}).Anonymous;
+  const Type = UnionType({env: $.env, check: false}).Anonymous;
   const Point = Type({Point: {x: Number, y: Number}});
   const p = Point.Point('foo', 4);
 
@@ -235,7 +235,7 @@ test('Disabling Type Checking', t => {
 });
 
 test('Use placeholder for cases without matches', t => {
-  const List = Type({Nil: [], Cons: [T.Any, undefined]});
+  const List = Type({Nil: [], Cons: [$.Any, undefined]});
 
   t.equal('Nil', List.case({Cons: () => 'Cons', _: () => 'Nil'}, List.Nil()));
 
@@ -248,7 +248,7 @@ test('Use placeholder for cases without matches', t => {
 
 test('caseOn throws an error when not all cases are covered', t => {
   const NotifySetting = Type(
-    {Mute: [], Vibrate: [], Sound: [T.Number]}
+    {Mute: [], Vibrate: [], Sound: [$.Number]}
   );
 
   try {
@@ -267,8 +267,8 @@ test('Create a Type with no cases', t => {
 });
 
 test('Can iterate through a instance\'s values', t => {
-  const T = Type({Values: [Number, Number, Number]});
-  const instance = T.Values(1, 2, 3);
+  const $ = Type({Values: [Number, Number, Number]});
+  const instance = $.Values(1, 2, 3);
 
   t.plan(3);
 
