@@ -13,7 +13,7 @@ const values = o =>
 const zipObj = (ks, vs) =>
   ks.reduce((acc, k, idx) => { acc[k] = vs[idx]; return acc; }, {});
 
-const BuiltInType = function(t) {
+const BuiltInType = t => {
   switch (t.name) {
     case 'Boolean':
     case 'Number':
@@ -45,7 +45,7 @@ const createIterator = function() {
   };
 };
 
-const staticCase = function(options, b, ...args) {
+const staticCase = (options, b, ...args) => {
   const f = options[b._name];
   if (f) {
     const values = b._keys.map(k => b[k]);
@@ -59,15 +59,14 @@ const staticCase = function(options, b, ...args) {
   }
 };
 
-const CaseRecordType = function(keys, enums) {
-  return $.RecordType(
+const CaseRecordType = (keys, enums) =>
+  $.RecordType(
     keys.length ?
       Object.assign(
         ...keys.map(k => ({[k]: $.Function(values(enums[k]).concat(a))}))
       ) :
       {}
   );
-};
 
 const ObjConstructorOf = (prototype, keys, name, r) =>
   Object.assign(Object.create(prototype), r, {
@@ -76,27 +75,25 @@ const ObjConstructorOf = (prototype, keys, name, r) =>
     [Symbol.iterator]: createIterator,
   });
 
-const CreateCaseConstructor = function(def, prototype, typeName, cases) {
-  return function createCaseConstructor(k) {
-    const type = cases[k];
-    const isArray = Array.isArray(type);
-    const keys = Object.keys(type);
-    const types = isArray ? type : values(type);
-    const recordType = $.RecordType(isArray ? zipObj(keys, types) : type);
+const CreateCaseConstructor = (def, prototype, typeName, cases, k) => {
+  const type = cases[k];
+  const isArray = Array.isArray(type);
+  const keys = Object.keys(type);
+  const types = isArray ? type : values(type);
+  const recordType = $.RecordType(isArray ? zipObj(keys, types) : type);
 
-    return {
-      [`${k}Of`]:
-        def(`${typeName}.${k}Of`,
-            {},
-            [recordType, recordType],
-            t => ObjConstructorOf(prototype, keys, k, t)),
-      [k]:
-        def(`${typeName}.${k}`,
-            {},
-            types.concat(recordType),
-            (...args) =>
-              ObjConstructorOf(prototype, keys, k, zipObj(keys, args))),
-    };
+  return {
+    [`${k}Of`]:
+      def(`${typeName}.${k}Of`,
+          {},
+          [recordType, recordType],
+          t => ObjConstructorOf(prototype, keys, k, t)),
+    [k]:
+      def(`${typeName}.${k}`,
+          {},
+          types.concat(recordType),
+          (...args) =>
+            ObjConstructorOf(prototype, keys, k, zipObj(keys, args))),
   };
 };
 
@@ -105,7 +102,7 @@ module.exports = opts => {
 
   const def = $.create(opts);
 
-  const CreateUnionType = function(typeName, _cases, prototype = {}) {
+  const CreateUnionType = (typeName, _cases, prototype) => {
     //    Type :: Type
     const Type = $.NullaryType(
       typeName,
@@ -116,9 +113,8 @@ module.exports = opts => {
     const def = $.create({checkTypes: opts.checkTypes, env});
     const cases =
       map(map(x => BuiltInType(x === undefined ? Type : x)), _cases);
-    const createCaseConstructor =
-      CreateCaseConstructor(def, prototype, typeName, cases);
-    const constructors = keys.map(createCaseConstructor);
+    const constructors =
+      keys.map(k => CreateCaseConstructor(def, prototype, typeName, cases, k));
     const caseRecordType = CaseRecordType(keys, cases);
 
     const instanceCaseDef =
@@ -166,14 +162,14 @@ module.exports = opts => {
     def('UnionType.Named',
         {},
         [$.String, $.StrMap($.Any), $.Any],
-        CreateUnionType);
+        (typeName, _cases) => CreateUnionType(typeName, _cases, {}));
 
   const Anonymous =
     def('UnionType.Anonymous',
         {},
         [$.StrMap($.Any), $.Any],
         enums =>
-          CreateUnionType(`(${Object.keys(enums).join(' | ')})`, enums));
+          CreateUnionType(`(${Object.keys(enums).join(' | ')})`, enums, {}));
 
   const Class =
     def('UnionType.Class',
