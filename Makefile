@@ -15,7 +15,7 @@ LICENSE:
 
 .PHONY: lint
 lint:
-	$(ESLINT) --env node index.js test/test.js
+	$(ESLINT) --env node -- index.js test/test.js
 
 
 .PHONY: setup
