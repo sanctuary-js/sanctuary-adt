@@ -156,22 +156,16 @@ const CreateCaseConstructor = function(def, prototype, typeName, cases){
 
     return {
       [`${k}Of`]:
-        def(
-          `${typeName}.${k}Of`,
-          {},
-          [recordType, recordType],
-          objConstructorOf(keys, k)
-        ),
+        def(`${typeName}.${k}Of`,
+            {},
+            [recordType, recordType],
+            objConstructorOf(keys, k)),
       [k]:
-        def(
-          `${typeName}.${k}`,
-          {},
-          types.concat(recordType),
-          B(
-            objConstructorOf(keys, k),
-            unapply(zipObj(keys))
-          )
-        ),
+        def(`${typeName}.${k}`,
+            {},
+            types.concat(recordType),
+            B(objConstructorOf(keys, k),
+              unapply(zipObj(keys)))),
     };
   };
 };
@@ -222,12 +216,10 @@ const Setup = function({check, ENV = T.env}){
       CaseRecordType(keys, cases);
 
     const instanceCaseDef =
-      def(
-          `${typeName}::case`,
+      def(`${typeName}::case`,
           {},
           [caseRecordType, a],
-          boundStaticCase
-      );
+          boundStaticCase);
 
     const flexibleInstanceCase = function(o, ...args){
       if (o._){
@@ -250,12 +242,10 @@ const Setup = function({check, ENV = T.env}){
       instanceCaseDef.toString;
 
     const staticCaseDef =
-      def(
-          `${typeName}.case`,
+      def(`${typeName}.case`,
           {},
           [caseRecordType, Type, a],
-          staticCase
-      );
+          staticCase);
 
     const flexibleStaticCase = function(o, ...args){
       if (o._){
@@ -282,31 +272,24 @@ const Setup = function({check, ENV = T.env}){
   };
 
   const Named =
-    def(
-        'UnionType.Named'
-        , {}
-        , [T.String, T.StrMap(T.Any), T.Any]
-        , CreateUnionType
-    );
+    def('UnionType.Named',
+        {},
+        [T.String, T.StrMap(T.Any), T.Any],
+        CreateUnionType);
 
   const Anonymous =
-    def(
-        'UnionType.Anonymous',
+    def('UnionType.Anonymous',
         {},
         [T.StrMap(T.Any), T.Any],
-        enums => CreateUnionType(
-          `(${Object.keys(enums).join(' | ')})`
-          , enums
-        )
-    );
+        enums =>
+          CreateUnionType(`(${Object.keys(enums).join(' | ')})`,
+                          enums));
 
   const Class =
-    def(
-        'UnionType.Class'
-        , {}
-        , [T.String, T.StrMap(T.Any), T.Object, T.Any]
-        , CreateUnionType
-    );
+    def('UnionType.Class',
+        {},
+        [T.String, T.StrMap(T.Any), T.Object, T.Any],
+        CreateUnionType);
 
   return {
     Anonymous,
