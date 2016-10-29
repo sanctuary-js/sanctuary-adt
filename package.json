@@ -3,9 +3,6 @@
   "version": "0.0.0",
   "description": "Descendant of paldepind/union-type with more descriptive error messages",
   "main": "index.js",
-  "directories": {
-    "test": "test"
-  },
   "scripts": {
     "test": "npm run test:test && npm run test:lint",
     "test:test": "node test/test.js",
