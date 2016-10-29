@@ -1,0 +1,30 @@
+{
+  "name": "sanctuary-union-type",
+  "version": "0.0.0",
+  "description": "Descendant of paldepind/union-type with more descriptive error messages",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "npm run test:test && npm run test:lint",
+    "test:test": "node test/test.js",
+    "test:lint": "eslint -c .eslintrc ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/sanctuary-js/sanctuary-union-type.git"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^3.9.0",
+    "istanbul": "^0.4.5",
+    "sanctuary-style": "^0.2.0",
+    "tape": "^4.6.2",
+    "xyz": "^1.1.0"
+  },
+  "dependencies": {
+    "ramda": "^0.22.1",
+    "sanctuary-def": "github:sanctuary-js/sanctuary-def"
+  }
+}
