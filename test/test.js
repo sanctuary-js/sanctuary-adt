@@ -1,8 +1,10 @@
 'use strict';
 
+const assert = require('assert');
+
 const R = require('ramda');
 const $ = require('sanctuary-def');
-const test = require('tape');
+const Z = require('sanctuary-type-classes');
 
 const UnionType = require('..');
 
@@ -13,17 +15,26 @@ const Type = UT.Anonymous;
 const Named = UT.Named;
 const Class = UT.Class;
 
-test('defining a union type with predicates', t => {
+//    eq :: (a, b) -> Undefined !
+const eq = (...args) => {
+  assert.strictEqual(args.length, 2);
+  const [actual, expected] = args;
+  assert.strictEqual(Z.toString(actual), Z.toString(expected));
+  assert.strictEqual(Z.equals(actual, expected), true);
+  assert.deepEqual(actual, expected);
+};
+
+
+test('defining a union type with predicates', () => {
   const Num = n => typeof n === 'number';
   const Point = Type({Point: [Num, Num]});
   const p = Point.Point(2, 3);
   const [x, y] = p;
 
-  t.deepEqual([x, y], [2, 3]);
-  t.end();
+  eq([x, y], [2, 3]);
 });
 
-test('defining a union type with built ins', t => {
+test('defining a union type with built ins', () => {
   const I = R.identity;
   [
     [2, Number, I],
@@ -39,22 +50,20 @@ test('defining a union type with built ins', t => {
       const instance = Class.$(expected);
       const actual = instance[0];
 
-      t.deepEqual(f(expected), f(actual));
+      eq(f(actual), f(expected));
     }
   );
-  t.end();
 });
 
-test('defining a record type', t => {
+test('defining a record type', () => {
   const Point = Type({Point: {x: Number, y: Number}});
   const [x, y] = Point.Point(2, 3);
   const [x1, y1] = Point.PointOf({x: 2, y: 3});
 
-  t.deepEqual([x, y], [x1, y1]);
-  t.end();
+  eq([x, y], [x1, y1]);
 });
 
-test('create instance methods', t => {
+test('create instance methods', () => {
   const Maybe = Type({Just: [$.Any], Nothing: []});
 
   Maybe.prototype.map = function(fn) {
@@ -68,13 +77,12 @@ test('create instance methods', t => {
   const nothing = Maybe.Nothing();
   just.map(R.add(1)); // => Just(2)
 
-  t.equal(nothing.map(R.add(1))._name, 'Nothing');
-  t.equal(Maybe.Just(4)[0], 4);
-  t.end();
+  eq(nothing.map(R.add(1))._name, 'Nothing');
+  eq(Maybe.Just(4)[0], 4);
 });
 
 
-test('create instance methods declaratively', t => {
+test('create instance methods declaratively', () => {
   const Maybe = Class('Maybe', {Just: [$.Any], Nothing: []}, {
     map(fn) {
       return Maybe.case({
@@ -88,12 +96,11 @@ test('create instance methods declaratively', t => {
   const nothing = Maybe.Nothing();
   just.map(R.add(1)); // => Just(2)
 
-  t.equal(nothing.map(R.add(1))._name, 'Nothing');
-  t.equal(Maybe.Just(4)[0], 4);
-  t.end();
+  eq(nothing.map(R.add(1))._name, 'Nothing');
+  eq(Maybe.Just(4)[0], 4);
 });
 
-test('Fields can be described in terms of other types', t => {
+test('Fields can be described in terms of other types', () => {
   const Point = Type({Point: {x: Number, y: Number}});
 
   const Shape = Type({
@@ -103,18 +110,16 @@ test('Fields can be described in terms of other types', t => {
 
   const [radius, [x, y]] = Shape.Circle(4, Point.Point(2, 3));
 
-  t.deepEqual([radius, x, y], [4, 2, 3]);
-  t.end();
+  eq([radius, x, y], [4, 2, 3]);
 });
 
-test('The values of a type can also have no fields at all', t => {
+test('The values of a type can also have no fields at all', () => {
   const NotifySetting = Type({Mute: [], Vibrate: [], Sound: [$.Number]});
 
-  t.equal('Mute', NotifySetting.Mute()._name);
-  t.end();
+  eq('Mute', NotifySetting.Mute()._name);
 });
 
-test('If a field value does not match the spec an error is thrown', t => {
+test('If a field value does not match the spec an error is thrown', () => {
   const err =
 `TypeError: Invalid value
 
@@ -132,13 +137,11 @@ The value at position 1 is not a member of ‘Number’.
   try {
     Point.Point(4, 'foo');
   } catch (e) {
-    t.equal(err, e.toString());
+    eq(e.toString(), err);
   }
-
-  t.end();
 });
 
-test('Switching on union types', t => {
+test('Switching on union types', () => {
   const Action = Type({Up: [], Right: [], Down: [], Left: []});
   const player = {x: 0, y: 0};
 
@@ -150,11 +153,10 @@ test('Switching on union types', t => {
       Left: () => ({x: player.x - 1, y: player.y}),
     }, action);
 
-  t.deepEqual({x: 0, y: -1}, advancePlayer(Action.Up(), player));
-  t.end();
+  eq(advancePlayer(Action.Up(), player), {x: 0, y: -1});
 });
 
-test('Switch on union types point free', t => {
+test('Switch on union types point free', () => {
   const Point = Type({Point: {x: $.Number, y: $.Number}});
 
   const Shape = Type({
@@ -171,7 +173,7 @@ test('Switch on union types point free', t => {
       Rectangle: (p1, p2) => (p2.x - p1.x) * (p2.y - p1.y),
     });
 
-    t.equal(100, area(Shape.Rectangle(p1, p2)));
+    eq(area(Shape.Rectangle(p1, p2)), 100);
   }
 
   {
@@ -179,15 +181,12 @@ test('Switch on union types point free', t => {
       Circle: (radius, _) => Math.PI * radius * radius,
       Rectangle: (p1, p2) => (p2.x - p1.x) * (p2.y - p1.y),
     });
-    console.log('after', area);
 
-    t.equal(100, area);
+    eq(area, 100);
   }
-
-  t.end();
 });
 
-test('Pass extra args to case via caseOn', t => {
+test('Pass extra args to case via caseOn', () => {
   const Action = Type({Up: [], Right: [], Down: [], Left: []});
   const player = {x: 0, y: 0};
 
@@ -198,20 +197,18 @@ test('Pass extra args to case via caseOn', t => {
     Left: (p, ...extra) => ['Right', p, ...extra],
   });
 
-  t.deepEqual(['Up', {x: 0, y: 0}, 1, 2, 3],
-              advancePlayer(Action.Up(), player, 1, 2, 3));
-  t.end();
+  eq(advancePlayer(Action.Up(), player, 1, 2, 3),
+     ['Up', {x: 0, y: 0}, 1, 2, 3]);
 });
 
-test('Destructuring assignment to extract values', t => {
+test('Destructuring assignment to extract values', () => {
   const Point = Type({Point: {x: Number, y: Number}});
   const [x, y] = Point.PointOf({x: 0, y: 0});
 
-  t.deepEqual({x: 0, y: 0}, {x, y});
-  t.end();
+  eq({x, y}, {x: 0, y: 0});
 });
 
-test('Recursive Union Types', t => {
+test('Recursive Union Types', () => {
   const List = Type({Nil: [], Cons: [$.Any, undefined]});
 
   const toString = List.case({
@@ -221,60 +218,42 @@ test('Recursive Union Types', t => {
 
   const list = List.Cons(1, List.Cons(2, List.Cons(3, List.Nil())));
 
-  t.equal('1 : 2 : 3 : Nil', toString(list));
-  t.end();
+  eq(toString(list), '1 : 2 : 3 : Nil');
 });
 
-test('Disabling Type Checking', t => {
+test('Disabling Type Checking', () => {
   const Type = UnionType({env: $.env, check: false}).Anonymous;
   const Point = Type({Point: {x: Number, y: Number}});
   const p = Point.Point('foo', 4);
 
-  t.equal('foo', p.x);
-  t.end();
+  eq(p.x, 'foo');
 });
 
-test('Use placeholder for cases without matches', t => {
+test('Use placeholder for cases without matches', () => {
   const List = Type({Nil: [], Cons: [$.Any, undefined]});
 
-  t.equal('Nil', List.case({Cons: () => 'Cons', _: () => 'Nil'}, List.Nil()));
-
-  const actual = List.Nil().case({Cons: () => 'Cons', _: () => 'Nil'});
-
-  t.equal('Nil', actual);
-
-  t.end();
+  eq(List.case({Cons: () => 'Cons', _: () => 'Nil'}, List.Nil()), 'Nil');
+  eq(List.Nil().case({Cons: () => 'Cons', _: () => 'Nil'}), 'Nil');
 });
 
-test('caseOn throws an error when not all cases are covered', t => {
-  const NotifySetting = Type(
-    {Mute: [], Vibrate: [], Sound: [$.Number]}
-  );
+test('caseOn throws an error when not all cases are covered', () => {
+  const NotifySetting = Type({Mute: [], Vibrate: [], Sound: [$.Number]});
 
   try {
     NotifySetting.caseOn({Vibrate: () => 'Mute'}, NotifySetting.Mute(), 1, 2);
   } catch (e) {
-    t.equal(e.toString(), 'TypeError: Non exhaustive case statement');
+    eq(e.toString(), 'TypeError: Non exhaustive case statement');
   }
-
-  t.end();
 });
 
-test('Create a Type with no cases', t => {
+test('Create a Type with no cases', () => {
   Type({});
-
-  t.end();
 });
 
-test('Can iterate through a instance\'s values', t => {
+test('Can iterate through a instance\'s values', () => {
   const $ = Type({Values: [Number, Number, Number]});
   const instance = $.Values(1, 2, 3);
-
-  t.plan(3);
-
-  for (const v of instance) {
-    t.ok(v);
-  }
-
-  t.end();
+  const results = [];
+  for (const x of instance) results.push(x);
+  eq(results, [1, 2, 3]);
 });
