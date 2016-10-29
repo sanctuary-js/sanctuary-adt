@@ -116,9 +116,9 @@ const boundStaticCase = function(options) {
   return staticCase(options, this);
 };
 
-const Setup = function({check, ENV = $.env}) {
+const Setup = function({checkTypes, ENV = $.env}) {
 
-  const def = $.create({checkTypes: check, env: ENV});
+  const def = $.create({checkTypes, env: ENV});
 
   const CreateUnionType = function(typeName, rawCases, prototype = {}) {
     //    Type :: Type
@@ -128,7 +128,7 @@ const Setup = function({check, ENV = $.env}) {
     );
     const keys = Object.keys(rawCases);
     const env = ENV.concat([Type]);
-    const def = $.create({checkTypes: check, env});
+    const def = $.create({checkTypes, env});
     const cases = processRawCases(Type, rawCases);
     const createCaseConstructor =
       CreateCaseConstructor(def, prototype, typeName, cases);

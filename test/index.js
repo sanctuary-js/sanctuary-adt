@@ -9,7 +9,7 @@ const Z = require('sanctuary-type-classes');
 const UnionType = require('..');
 
 
-const UT = UnionType({env: $.env, check: true});
+const UT = UnionType({env: $.env, checkTypes: true});
 
 const Type = UT.Anonymous;
 const Named = UT.Named;
@@ -222,7 +222,7 @@ test('Recursive Union Types', () => {
 });
 
 test('Disabling Type Checking', () => {
-  const Type = UnionType({env: $.env, check: false}).Anonymous;
+  const Type = UnionType({env: $.env, checkTypes: false}).Anonymous;
   const Point = Type({Point: {x: Number, y: Number}});
   const p = Point.Point('foo', 4);
 
