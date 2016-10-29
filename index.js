@@ -40,10 +40,10 @@ const mapConstrToFn = constraint =>
     ? T.AnyFunction
     : constraint;
 
-const BuiltInType = function(t){
+const BuiltInType = function(t) {
   const mapped = mapConstrToFn(t);
 
-  if (mapped !== t){
+  if (mapped !== t) {
     return mapped;
   } else if (t.constructor === Function) {
     return AutoPredicate(t);
@@ -71,9 +71,9 @@ const createIterator = function() {
   };
 };
 
-const staticCase = function(options, b, ...args){
+const staticCase = function(options, b, ...args) {
   const f = options[b._name];
-  if (f){
+  if (f) {
 
     const values = b._keys.map(k => b[k]);
     return f(...[...values, ...args]);
@@ -89,7 +89,7 @@ const staticCase = function(options, b, ...args){
   }
 };
 
-const CaseRecordType = function(keys, enums){
+const CaseRecordType = function(keys, enums) {
   return T.RecordType(
     keys.length
     ? Object.assign(
@@ -128,12 +128,12 @@ const processRawCases =
       rawCases
     );
 
-const CreateCaseConstructor = function(def, prototype, typeName, cases){
+const CreateCaseConstructor = function(def, prototype, typeName, cases) {
 
   const objConstructorOf =
     ObjConstructorOf(prototype);
 
-  return function createCaseConstructor(k){
+  return function createCaseConstructor(k) {
 
     const type = cases[k];
 
@@ -171,11 +171,11 @@ const CreateCaseConstructor = function(def, prototype, typeName, cases){
 };
 
 
-const boundStaticCase = function(options){
+const boundStaticCase = function(options) {
   return staticCase(options, this);
 };
 
-const Setup = function({check, ENV = T.env}){
+const Setup = function({check, ENV = T.env}) {
 
   const def =
     T.create({
@@ -183,7 +183,7 @@ const Setup = function({check, ENV = T.env}){
       env: ENV,
     });
 
-  const CreateUnionType = function(typeName, rawCases, prototype = {}){
+  const CreateUnionType = function(typeName, rawCases, prototype = {}) {
 
     const Type = T.NullaryType(
       typeName,
@@ -221,8 +221,8 @@ const Setup = function({check, ENV = T.env}){
           [caseRecordType, a],
           boundStaticCase);
 
-    const flexibleInstanceCase = function(o, ...args){
-      if (o._){
+    const flexibleInstanceCase = function(o, ...args) {
+      if (o._) {
         return boundStaticCase.apply(this, [o, ...args]);
       } else {
         return instanceCaseDef.apply(this, [o, ...args]);
@@ -247,8 +247,8 @@ const Setup = function({check, ENV = T.env}){
           [caseRecordType, Type, a],
           staticCase);
 
-    const flexibleStaticCase = function(o, ...args){
-      if (o._){
+    const flexibleStaticCase = function(o, ...args) {
+      if (o._) {
         return curryN(2, staticCase).apply(this, [o, ...args]);
       } else {
         return staticCaseDef.apply(this, [o, ...args]);

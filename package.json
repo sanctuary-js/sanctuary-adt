@@ -17,9 +17,9 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "eslint": "3.9.x",
+    "eslint": "2.9.x",
     "istanbul": "0.4.x",
-    "sanctuary-style": "0.2.x",
+    "sanctuary-style": "0.3.x",
     "tape": "4.6.x",
     "xyz": "1.1.x"
   },

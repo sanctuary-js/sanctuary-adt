@@ -175,7 +175,7 @@ The value at position 1 is not a member of ‘Number’.
 
   try {
     Point.Point(4, 'foo');
-  } catch (e){
+  } catch (e) {
     t.equal(err, e.toString());
   }
 
@@ -398,7 +398,7 @@ test('Can iterate through a instance\'s values', t => {
 
   t.plan(3);
 
-  for (const v of instance){
+  for (const v of instance) {
     t.ok(v);
   }
 
