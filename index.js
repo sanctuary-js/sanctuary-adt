@@ -144,7 +144,8 @@ module.exports = opts => {
 
     Type.case = function(o, ...args) {
       return o._ ?
-        curryN(2, staticCase).apply(this, [o, ...args]) :
+        def('anonymous', {}, [$.Any, $.Any, $.Any], staticCase)
+          .apply(null, [o, ...args]) :
         staticCaseDef.apply(this, [o, ...args]);
     };
 
