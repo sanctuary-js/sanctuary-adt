@@ -2,9 +2,6 @@
 
 const T = require('sanctuary-def');
 
-const AutoPredicate = f =>
-  T.NullaryType(`[${f.toString()}]`, f);
-
 const B = (f, g) => (...args) => f(g(...args));
 
 const map = require('ramda/src/map');
@@ -24,27 +21,20 @@ const zipObj = ks => vs =>
 
 const unapply = f => (...values) => f(values);
 
-const mapConstrToFn = constraint =>
-
-  constraint === String
-    ? T.String
-  : constraint === Number
-    ? T.Number
-  : constraint === Boolean
-    ? T.Boolean
-  : constraint === Object
-    ? T.Object
-  : constraint === Array
-    ? T.Array(T.Any)
-  : constraint === Function
-    ? T.AnyFunction
-    : constraint;
-
 const BuiltInType = function(t) {
-  const mapped = mapConstrToFn(t);
-  return mapped === t ?
-           t.constructor === Function ? AutoPredicate(t) : t :
-           mapped;
+  switch (t.name) {
+    case 'Boolean':
+    case 'Number':
+    case 'Object':
+    case 'String':
+      return T[t.name];
+    case 'Array':
+      return T.Array(T.Any);
+    case 'Function':
+      return T.AnyFunction;
+    default:
+      return typeof t === 'function' ? T.NullaryType(`[${t}]`, t) : t;
+  }
 };
 
 const a = T.TypeVariable('a');
