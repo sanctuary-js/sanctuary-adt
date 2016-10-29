@@ -33,7 +33,7 @@ const throws = (...args) => {
 
 
 test('defining a union type with predicates', () => {
-  const Num = n => typeof n === 'number';
+  const Num = $.NullaryType('my-package/Num', x => typeof x === 'number');
   const Point = Type({Point: [Num, Num]});
   const p = Point.Point(2, 3);
   const [x, y] = p;
@@ -44,12 +44,12 @@ test('defining a union type with predicates', () => {
 test('defining a union type with built ins', () => {
   const I = R.identity;
   [
-    [2, Number, I],
-    ['2', String, I],
-    [true, Boolean, I],
-    [{a: 1}, Object, I],
-    [[0, 1, 2], Array, I],
-    [() => 1, Function, f => f()],
+    [2, $.Number, I],
+    ['2', $.String, I],
+    [true, $.Boolean, I],
+    [{a: 1}, $.Object, I],
+    [[0, 1, 2], $.Array($.Any), I],
+    [() => 1, $.AnyFunction, f => f()],
   ]
   .forEach(
     ([expected, $, f]) => {
@@ -63,7 +63,7 @@ test('defining a union type with built ins', () => {
 });
 
 test('defining a record type', () => {
-  const Point = Type({Point: {x: Number, y: Number}});
+  const Point = Type({Point: {x: $.Number, y: $.Number}});
   const [x, y] = Point.Point(2, 3);
   const [x1, y1] = Point.PointOf({x: 2, y: 3});
 
@@ -110,7 +110,7 @@ test('Fields can be described in terms of other types', () => {
   const Point = Type({Point: {x: Number, y: Number}});
 
   const Shape = Type({
-    Circle: [Number, Point],
+    Circle: [$.Number, Point],
     Rectangle: [Point, Point],
   });
 
@@ -202,7 +202,7 @@ test('Pass extra args to case via caseOn', () => {
 });
 
 test('Destructuring assignment to extract values', () => {
-  const Point = Type({Point: {x: Number, y: Number}});
+  const Point = Type({Point: {x: $.Number, y: $.Number}});
   const [x, y] = Point.PointOf({x: 0, y: 0});
 
   eq({x, y}, {x: 0, y: 0});
@@ -223,7 +223,7 @@ test('Recursive Union Types', () => {
 
 test('Disabling Type Checking', () => {
   const Type = UnionType({checkTypes: false, env: $.env}).Anonymous;
-  const Point = Type({Point: {x: Number, y: Number}});
+  const Point = Type({Point: {x: $.Number, y: $.Number}});
   const p = Point.Point('foo', 4);
 
   eq(p.x, 'foo');
@@ -251,8 +251,8 @@ test('Create a Type with no cases', () => {
 });
 
 test('Can iterate through a instance\'s values', () => {
-  const $ = Type({Values: [Number, Number, Number]});
-  const instance = $.Values(1, 2, 3);
+  const T = Type({Values: [$.Number, $.Number, $.Number]});
+  const instance = T.Values(1, 2, 3);
   const results = [];
   for (const x of instance) results.push(x);
   eq(results, [1, 2, 3]);

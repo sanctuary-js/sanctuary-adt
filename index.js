@@ -13,22 +13,6 @@ const values = o =>
 const zipObj = (ks, vs) =>
   ks.reduce((acc, k, idx) => { acc[k] = vs[idx]; return acc; }, {});
 
-const BuiltInType = t => {
-  switch (t.name) {
-    case 'Boolean':
-    case 'Number':
-    case 'Object':
-    case 'String':
-      return $[t.name];
-    case 'Array':
-      return $.Array($.Any);
-    case 'Function':
-      return $.AnyFunction;
-    default:
-      return typeof t === 'function' ? $.NullaryType(`[${t}]`, t) : t;
-  }
-};
-
 const a = $.TypeVariable('a');
 
 const createIterator = function() {
@@ -101,7 +85,7 @@ module.exports = opts => {
     const env = Z.concat(opts.env, [Type]);
     const def = $.create({checkTypes: opts.checkTypes, env});
     const cases =
-      Z.map(xs => Z.map(x => BuiltInType(x === undefined ? Type : x), xs),
+      Z.map(xs => Z.map(x => x === undefined ? Type : typeof x === 'function' ? $.NullaryType(`[${x}]`, x) : x, xs),  // eslint-disable-line max-len
             _cases);
     const constructors =
       Z.map(k => CreateCaseConstructor(def, prototype, typeName, cases, k),
