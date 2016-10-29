@@ -31,102 +31,92 @@ const createIterator = function() {
   };
 };
 
-const staticCase = (options, b, ...args) =>
-  b._name in options ?
-    options[b._name](...Z.concat(Z.map(k => b[k], b._keys), args)) :
-    options._(b);
-
-const ObjConstructorOf = (prototype, keys, name, r) =>
-  Object.assign(Object.create(prototype), r, {
-    _keys: keys,
-    _name: name,
-    [Symbol.iterator]: createIterator,
-  });
-
-const CreateCaseConstructor = (def, prototype, typeName, cases, k) => {
-  const unprefixedTypeName = stripNamespace(typeName);
-  const type = cases[k];
-  const isArray = Array.isArray(type);
-  const keys = Object.keys(type);
-  const types = isArray ? type : values(type);
-  const recordType = $.RecordType(isArray ? zipObj(keys, types) : type);
-
-  return {
-    [`${k}Of`]:
-      def(`${unprefixedTypeName}.${k}Of`,
-          {},
-          [recordType, recordType],
-          t => ObjConstructorOf(prototype, keys, k, t)),
-    [k]: isArray && type.length === 0 ?
-      ObjConstructorOf(prototype, keys, k, {}) :
-      def(`${unprefixedTypeName}.${k}`,
-          {},
-          Z.concat(types, [recordType]),
-          (...args) =>
-            ObjConstructorOf(prototype, keys, k, zipObj(keys, args))),
-  };
-};
-
 
 module.exports = opts => {
 
   const def = $.create(opts);
 
-  const CreateUnionType = (typeName, _cases, prototype) => {
+  const CreateUnionType = (typeName, _cases, _prototype) => {
     const unprefixedTypeName = stripNamespace(typeName);
     //    Type :: Type
     const Type = $.NullaryType(
       typeName,
       x => x != null && x['@@type'] === typeName
     );
-    const keys = Object.keys(_cases);
     const env = Z.concat(opts.env, [Type]);
     const def = $.create({checkTypes: opts.checkTypes, env});
     const cases =
       Z.map(xs => Z.map(x => x === undefined ? Type : x, xs),
             _cases);
-    const constructors =
-      Z.map(k => CreateCaseConstructor(def, prototype, typeName, cases, k),
-            keys);
-    const caseRecordType =
+    const CaseRecordType =
       $.RecordType(Z.map(x => $.Function(Z.concat(values(x), [a])), cases));
 
-    const instanceCaseDef =
-      def(`${unprefixedTypeName}::case`,
+    const prototype$case = function(cases) {
+      return '_' in cases ?
+        cases._(this) :
+        def(
+          `${unprefixedTypeName}::case`,
           {},
-          [caseRecordType, a],
-          function(t) { return staticCase(t, this); });
-
-    Type.prototype = Object.assign(prototype, {
-      '@@type': typeName,
-      case: function(o, ...args) {
-        return '_' in o ?
-          staticCase.apply(null, [o, this]) :
-          instanceCaseDef.apply(this, Z.concat([o], args));
-      },
-      env,
-    });
-
-    Type.prototype.case.toString =
-    Type.prototype.case.inspect = instanceCaseDef.toString;
-
-    const staticCaseDef =
-      def(`${unprefixedTypeName}.case`,
-          {},
-          [caseRecordType, Type, a],
-          staticCase);
-
-    Type.case = function(o, ..._args) {
-      const args = Z.concat([o], _args);
-      return '_' in o ?
-        def('anonymous', {}, [$.Any, $.Any, $.Any], staticCase)(...args) :
-        staticCaseDef.apply(this, args);
+          [CaseRecordType, a],
+          cases => cases[this._name](...Z.map(k => this[k], this._keys))
+        )(cases);
     };
 
-    Type.case.toString =
-    Type.case.inspect = staticCaseDef.toString;
+    Type.case = function(o, ..._args) {
+      return def(
+        `${unprefixedTypeName}.case`,
+        {},
+        ['_' in o ? $.Any : CaseRecordType, Type, a],
+        (cases, value) =>
+          value._name in cases ?
+            cases[value._name](...Z.map(k => value[k], value._keys)) :
+            cases._(value)
+      ).apply(this, Z.concat([o], _args));
+    };
 
-    return Object.assign(Type, ...constructors);
+    Object.keys(cases).forEach(name => {
+      const type = cases[name];
+      const isArray = Array.isArray(type);
+      const keys = Object.keys(type);
+      const types = isArray ? type : values(type);
+      const recordType = $.RecordType(isArray ? zipObj(keys, types) : type);
+
+      Type[`${name}Of`] =
+        def(`${unprefixedTypeName}.${name}Of`,
+            {},
+            [recordType, recordType],
+            r => {
+              const prototype = Object.create(_prototype);
+              prototype._keys = keys;
+              prototype._name = name;
+              prototype.case = prototype$case;
+              prototype['@@type'] = typeName;
+              prototype[Symbol.iterator] = createIterator;
+              Object.keys(r).forEach(k => { prototype[k] = r[k]; });
+              return prototype;
+            });
+
+      Type[name] =
+        def(`${unprefixedTypeName}.${name}`,
+            {},
+            Z.concat(types, [recordType]),
+            (...args) => {
+              const prototype = Object.create(_prototype);
+              prototype._keys = keys;
+              prototype._name = name;
+              prototype.case = prototype$case;
+              prototype['@@type'] = typeName;
+              prototype[Symbol.iterator] = createIterator;
+              keys.forEach((k, idx) => { prototype[k] = args[idx]; });
+              return prototype;
+            });
+
+      if (isArray && type.length === 0) {
+        Type[name] = Type[name]();
+      }
+    });
+
+    return Type;
   };
 
   const Named =
