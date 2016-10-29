@@ -57,11 +57,6 @@ const staticCase = (options, b, ...args) => {
   throw new TypeError('Non exhaustive case statement');
 };
 
-const CaseRecordType = (keys, enums) => {
-  const f = k => ({[k]: $.Function(Z.concat(values(enums[k]), [a]))});
-  return $.RecordType(Z.reduce(Z.concat, {}, Z.map(f, keys)));
-};
-
 const ObjConstructorOf = (prototype, keys, name, r) =>
   Object.assign(Object.create(prototype), r, {
     _keys: keys,
@@ -111,7 +106,8 @@ module.exports = opts => {
     const constructors =
       Z.map(k => CreateCaseConstructor(def, prototype, typeName, cases, k),
             keys);
-    const caseRecordType = CaseRecordType(keys, cases);
+    const caseRecordType =
+      $.RecordType(Z.map(x => $.Function(Z.concat(values(x), [a])), cases));
 
     const instanceCaseDef =
       def(`${typeName}::case`,
