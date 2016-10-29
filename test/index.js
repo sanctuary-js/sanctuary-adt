@@ -72,7 +72,7 @@ test('defining a record type', () => {
 });
 
 test('create instance methods declaratively', () => {
-  const Maybe = Class('Maybe', {Just: [a], Nothing: []}, {
+  const Maybe = Class('my-package/Maybe', {Just: [a], Nothing: []}, {
     'fantasy-land/equals'(other) {
       return this._name === 'Nothing' ?
         other._name === 'Nothing' :
