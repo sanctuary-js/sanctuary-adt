@@ -8,16 +8,10 @@ const T = require('sanctuary-def');
 const B = (f, g) => (...args) => f(g(...args));
 
 const values = o =>
-  Array.isArray(o)
-    ? o
-    : Object.keys(o).map(k => o[k]);
+  Array.isArray(o) ? o : Object.keys(o).map(k => o[k]);
 
 const zipObj = ks => vs =>
-  ks.length
-    ? Object.assign(
-      ...ks.map((k, i) => ({[k]: vs[i]}))
-    )
-    : {};
+  ks.length ? Object.assign(...ks.map((k, i) => ({[k]: vs[i]}))) : {};
 
 const unapply = f => (...values) => f(values);
 
@@ -44,9 +38,7 @@ const createIterator = function() {
     idx: 0,
     val: this,
     next() {
-
       const keys = this.val._keys;
-
       return this.idx === keys.length ?
         {done: true} :
         // eslint-disable-next-line no-plusplus
@@ -58,32 +50,24 @@ const createIterator = function() {
 const staticCase = function(options, b, ...args) {
   const f = options[b._name];
   if (f) {
-
     const values = b._keys.map(k => b[k]);
     return f(...[...values, ...args]);
-
   } else if (options._) {
     return options._(b);
   } else {
     // caseOn is untyped
     // so this is possible
-    throw new TypeError(
-      'Non exhaustive case statement'
-    );
+    throw new TypeError('Non exhaustive case statement');
   }
 };
 
 const CaseRecordType = function(keys, enums) {
   return T.RecordType(
-    keys.length
-    ? Object.assign(
-      ...keys.map(
-        k => ({
-          [k]: T.Function(values(enums[k]).concat(a)),
-        })
-      )
-    )
-    : {}
+    keys.length ?
+      Object.assign(
+        ...keys.map(k => ({[k]: T.Function(values(enums[k]).concat(a))}))
+      ) :
+      {}
   );
 };
 
@@ -100,55 +84,28 @@ const ObjConstructorOf = prototype => (keys, name) => r =>
 
 const RecursiveType = Type => v => typeof v === 'undefined' ? Type : v;
 
-const processRawCases =
-  (Type, rawCases) =>
-    map(
-      map(
-        B(
-          BuiltInType,
-          RecursiveType(Type)
-        )
-      ),
-      rawCases
-    );
+const processRawCases = (Type, rawCases) =>
+  map(map(B(BuiltInType, RecursiveType(Type))), rawCases);
 
 const CreateCaseConstructor = function(def, prototype, typeName, cases) {
-
-  const objConstructorOf =
-    ObjConstructorOf(prototype);
-
   return function createCaseConstructor(k) {
-
     const type = cases[k];
-
-    const isArray =
-      Array.isArray(type);
-
+    const isArray = Array.isArray(type);
     const keys = Object.keys(type);
-
-    const types =
-      isArray
-        ? type
-        : values(type);
-
-    const recordType =
-      isArray
-        ? T.RecordType(
-          zipObj(keys)(types)
-        )
-        : T.RecordType(type);
+    const types = isArray ? type : values(type);
+    const recordType = T.RecordType(isArray ? zipObj(keys)(types) : type);
 
     return {
       [`${k}Of`]:
         def(`${typeName}.${k}Of`,
             {},
             [recordType, recordType],
-            objConstructorOf(keys, k)),
+            ObjConstructorOf(prototype)(keys, k)),
       [k]:
         def(`${typeName}.${k}`,
             {},
             types.concat(recordType),
-            B(objConstructorOf(keys, k),
+            B(ObjConstructorOf(prototype)(keys, k),
               unapply(zipObj(keys)))),
     };
   };
@@ -161,44 +118,22 @@ const boundStaticCase = function(options) {
 
 const Setup = function({check, ENV = T.env}) {
 
-  const def =
-    T.create({
-      checkTypes: check,
-      env: ENV,
-    });
+  const def = T.create({checkTypes: check, env: ENV});
 
   const CreateUnionType = function(typeName, rawCases, prototype = {}) {
-
     //    Type :: Type
     const Type = T.NullaryType(
       typeName,
       x => x != null && x['@@type'] === typeName
     );
-
-    const keys =
-      Object.keys(rawCases);
-
-    const env =
-      ENV.concat([Type]);
-
+    const keys = Object.keys(rawCases);
+    const env = ENV.concat([Type]);
     const def = T.create({checkTypes: check, env});
-
-    const cases =
-      processRawCases(Type, rawCases);
-
+    const cases = processRawCases(Type, rawCases);
     const createCaseConstructor =
-      CreateCaseConstructor(
-        def,
-        prototype,
-        typeName,
-        cases
-      );
-
-    const constructors =
-      keys.map(createCaseConstructor);
-
-    const caseRecordType =
-      CaseRecordType(keys, cases);
+      CreateCaseConstructor(def, prototype, typeName, cases);
+    const constructors = keys.map(createCaseConstructor);
+    const caseRecordType = CaseRecordType(keys, cases);
 
     const instanceCaseDef =
       def(`${typeName}::case`,
@@ -206,23 +141,18 @@ const Setup = function({check, ENV = T.env}) {
           [caseRecordType, a],
           boundStaticCase);
 
-    const flexibleInstanceCase = function(o, ...args) {
-      return o._ ?
-        boundStaticCase.apply(this, [o, ...args]) :
-        instanceCaseDef.apply(this, [o, ...args]);
-    };
-    Type.prototype = Object.assign(
-      prototype,
-      {
-        '@@type': typeName,
-        case: flexibleInstanceCase,
-        env,
-      }
-    );
+    Type.prototype = Object.assign(prototype, {
+      '@@type': typeName,
+      case: function(o, ...args) {
+        return o._ ?
+          boundStaticCase.apply(this, [o, ...args]) :
+          instanceCaseDef.apply(this, [o, ...args]);
+      },
+      env,
+    });
 
     Type.prototype.case.toString =
-      Type.prototype.case.inspect =
-      instanceCaseDef.toString;
+    Type.prototype.case.inspect = instanceCaseDef.toString;
 
     const staticCaseDef =
       def(`${typeName}.case`,
@@ -230,26 +160,20 @@ const Setup = function({check, ENV = T.env}) {
           [caseRecordType, Type, a],
           staticCase);
 
-    const flexibleStaticCase = function(o, ...args) {
+    Type.case = function(o, ...args) {
       return o._ ?
         curryN(2, staticCase).apply(this, [o, ...args]) :
         staticCaseDef.apply(this, [o, ...args]);
     };
 
-    Type.case = flexibleStaticCase;
-
     Type.case.toString =
-      Type.case.inspect =
-        staticCaseDef.toString;
+    Type.case.inspect = staticCaseDef.toString;
 
     // caseOn opts out of typing because I'm
     // not smart enough to do it efficiently
     Type.caseOn = curryN(3, staticCase);
 
-    return Object.assign(
-      Type
-      , ...constructors
-    );
+    return Object.assign(Type, ...constructors);
   };
 
   const Named =
@@ -263,8 +187,7 @@ const Setup = function({check, ENV = T.env}) {
         {},
         [T.StrMap(T.Any), T.Any],
         enums =>
-          CreateUnionType(`(${Object.keys(enums).join(' | ')})`,
-                          enums));
+          CreateUnionType(`(${Object.keys(enums).join(' | ')})`, enums));
 
   const Class =
     def('UnionType.Class',
@@ -272,11 +195,7 @@ const Setup = function({check, ENV = T.env}) {
         [T.String, T.StrMap(T.Any), T.Object, T.Any],
         CreateUnionType);
 
-  return {
-    Anonymous,
-    Named,
-    Class,
-  };
+  return {Anonymous, Named, Class};
 };
 
 module.exports = Setup;
