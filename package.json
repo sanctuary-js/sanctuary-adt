@@ -16,11 +16,11 @@
     "istanbul": "0.4.x",
     "mocha": "3.1.x",
     "sanctuary-style": "0.3.x",
-    "sanctuary-type-classes": "0.3.x",
     "xyz": "1.1.x"
   },
   "dependencies": {
     "ramda": "0.22.x",
-    "sanctuary-def": "github:sanctuary-js/sanctuary-def"
+    "sanctuary-def": "github:sanctuary-js/sanctuary-def",
+    "sanctuary-type-classes": "0.3.x"
   }
 }

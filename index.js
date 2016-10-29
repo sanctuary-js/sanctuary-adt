@@ -1,13 +1,13 @@
 'use strict';
 
 const curryN = require('ramda/src/curryN');
-const map = require('ramda/src/map');
 const $ = require('sanctuary-def');
+const Z = require('sanctuary-type-classes');
 
 
 //    values :: Any -> Array a
 const values = o =>
-  Array.isArray(o) ? o : Object.keys(o).map(k => o[k]);
+  Array.isArray(o) ? o : Z.map(k => o[k], Object.keys(o));
 
 //    zipObj :: (Array String, Array a) -> StrMap a
 const zipObj = (ks, vs) =>
@@ -47,7 +47,7 @@ const createIterator = function() {
 
 const staticCase = (options, b, ...args) => {
   if (b._name in options) {
-    return options[b._name](...[...b._keys.map(k => b[k]), ...args]);
+    return options[b._name](...Z.concat(Z.map(k => b[k], b._keys), args));
   } else if ('_' in options) {
     return options._(b);
   }
@@ -57,11 +57,10 @@ const staticCase = (options, b, ...args) => {
   throw new TypeError('Non exhaustive case statement');
 };
 
-const CaseRecordType = (keys, enums) =>
-  $.RecordType(Object.assign(
-    {},
-    ...keys.map(k => ({[k]: $.Function(values(enums[k]).concat(a))}))
-  ));
+const CaseRecordType = (keys, enums) => {
+  const f = k => ({[k]: $.Function(Z.concat(values(enums[k]), [a]))});
+  return $.RecordType(Z.reduce(Z.concat, {}, Z.map(f, keys)));
+};
 
 const ObjConstructorOf = (prototype, keys, name, r) =>
   Object.assign(Object.create(prototype), r, {
@@ -86,7 +85,7 @@ const CreateCaseConstructor = (def, prototype, typeName, cases, k) => {
     [k]:
       def(`${typeName}.${k}`,
           {},
-          types.concat(recordType),
+          Z.concat(types, [recordType]),
           (...args) =>
             ObjConstructorOf(prototype, keys, k, zipObj(keys, args))),
   };
@@ -104,12 +103,14 @@ module.exports = opts => {
       x => x != null && x['@@type'] === typeName
     );
     const keys = Object.keys(_cases);
-    const env = opts.env.concat([Type]);
+    const env = Z.concat(opts.env, [Type]);
     const def = $.create({checkTypes: opts.checkTypes, env});
     const cases =
-      map(map(x => BuiltInType(x === undefined ? Type : x)), _cases);
+      Z.map(xs => Z.map(x => BuiltInType(x === undefined ? Type : x), xs),
+            _cases);
     const constructors =
-      keys.map(k => CreateCaseConstructor(def, prototype, typeName, cases, k));
+      Z.map(k => CreateCaseConstructor(def, prototype, typeName, cases, k),
+            keys);
     const caseRecordType = CaseRecordType(keys, cases);
 
     const instanceCaseDef =
@@ -123,7 +124,7 @@ module.exports = opts => {
       case: function(o, ...args) {
         return '_' in o ?
           staticCase.apply(null, [o, this]) :
-          instanceCaseDef.apply(this, [o, ...args]);
+          instanceCaseDef.apply(this, Z.concat([o], args));
       },
       env,
     });
@@ -137,11 +138,11 @@ module.exports = opts => {
           [caseRecordType, Type, a],
           staticCase);
 
-    Type.case = function(o, ...args) {
+    Type.case = function(o, ..._args) {
+      const args = Z.concat([o], _args);
       return '_' in o ?
-        def('anonymous', {}, [$.Any, $.Any, $.Any], staticCase)
-          .apply(null, [o, ...args]) :
-        staticCaseDef.apply(this, [o, ...args]);
+        def('anonymous', {}, [$.Any, $.Any, $.Any], staticCase)(...args) :
+        staticCaseDef.apply(this, args);
     };
 
     Type.case.toString =
