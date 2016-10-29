@@ -112,10 +112,6 @@ const CreateCaseConstructor = function(def, prototype, typeName, cases) {
 };
 
 
-const boundStaticCase = function(options) {
-  return staticCase(options, this);
-};
-
 module.exports = opts => {
 
   const def = $.create(opts);
@@ -139,13 +135,13 @@ module.exports = opts => {
       def(`${typeName}::case`,
           {},
           [caseRecordType, a],
-          boundStaticCase);
+          function(t) { return staticCase(t, this); });
 
     Type.prototype = Object.assign(prototype, {
       '@@type': typeName,
       case: function(o, ...args) {
         return o._ ?
-          boundStaticCase.apply(this, [o, ...args]) :
+          staticCase.apply(null, [o, this]) :
           instanceCaseDef.apply(this, [o, ...args]);
       },
       env,
