@@ -24,6 +24,13 @@ const eq = (...args) => {
   assert.deepEqual(actual, expected);
 };
 
+//    throws :: (Function, TypeRep a, String) -> Undefined !
+const throws = (...args) => {
+  assert.strictEqual(args.length, 3);
+  const [f, type, message] = args;
+  assert.throws(f, type, message);
+};
+
 
 test('defining a union type with predicates', () => {
   const Num = n => typeof n === 'number';
@@ -81,7 +88,6 @@ test('create instance methods', () => {
   eq(Maybe.Just(4)[0], 4);
 });
 
-
 test('create instance methods declaratively', () => {
   const Maybe = Class('Maybe', {Just: [$.Any], Nothing: []}, {
     map(fn) {
@@ -120,25 +126,19 @@ test('The values of a type can also have no fields at all', () => {
 });
 
 test('If a field value does not match the spec an error is thrown', () => {
-  const err =
-`TypeError: Invalid value
-
-Point.Point :: Number -> Number -> { x :: Number, y :: Number }
-                         ^^^^^^
-                           1
-
-1)  "foo" :: String
-
-The value at position 1 is not a member of ‘Number’.
-`;
-
   const Point = Named('Point', {Point: {x: Number, y: Number}});
 
-  try {
-    Point.Point(4, 'foo');
-  } catch (e) {
-    eq(e.toString(), err);
-  }
+  throws(() => { Point.Point(4, 'foo'); },
+         TypeError,
+         'Invalid value\n' +
+         '\n' +
+         'Point.Point :: Number -> Number -> { x :: Number, y :: Number }\n' +
+         '                         ^^^^^^\n' +
+         '                           1\n' +
+         '\n' +
+         '1)  "foo" :: String\n' +
+         '\n' +
+         'The value at position 1 is not a member of ‘Number’.\n');
 });
 
 test('Switching on union types', () => {
@@ -239,11 +239,11 @@ test('Use placeholder for cases without matches', () => {
 test('caseOn throws an error when not all cases are covered', () => {
   const NotifySetting = Type({Mute: [], Vibrate: [], Sound: [$.Number]});
 
-  try {
+  const thunk = () => {
     NotifySetting.caseOn({Vibrate: () => 'Mute'}, NotifySetting.Mute(), 1, 2);
-  } catch (e) {
-    eq(e.toString(), 'TypeError: Non exhaustive case statement');
-  }
+  };
+
+  throws(thunk, TypeError, 'Non exhaustive case statement');
 });
 
 test('Create a Type with no cases', () => {
