@@ -2,9 +2,6 @@ ESLINT = node_modules/.bin/eslint --config node_modules/sanctuary-style/eslint-e
 ISTANBUL = node_modules/.bin/istanbul
 NPM = npm
 
-SRC = $(.)
-TEST = $(shell find test -name '*.js' | sort)
-
 
 .PHONY: all
 all: LICENSE
