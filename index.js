@@ -1,4 +1,5 @@
-/* global Symbol,module */
+'use strict';
+
 const T = require('sanctuary-def');
 
 const AutoPredicate = f =>
