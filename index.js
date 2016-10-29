@@ -179,9 +179,10 @@ const Setup = function({check, ENV = T.env}) {
 
   const CreateUnionType = function(typeName, rawCases, prototype = {}) {
 
+    //    Type :: Type
     const Type = T.NullaryType(
       typeName,
-      a => a && a['@@type'] === typeName
+      x => x != null && x['@@type'] === typeName
     );
 
     const keys =
