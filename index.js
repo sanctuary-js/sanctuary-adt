@@ -62,11 +62,10 @@ const createIterator = function() {
 
       const keys = this.val._keys;
 
-      /* eslint-disable no-plusplus */
       return this.idx === keys.length
         ? {done: true}
+        // eslint-disable-next-line no-plusplus
         : {value: this.val[keys[this.idx++]]};
-      /* eslint-enable no-plusplus */
     },
   };
 };

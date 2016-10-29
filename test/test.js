@@ -32,17 +32,14 @@ test('defining a union type with built ins', t => {
 
   const I = R.identity;
 
-  /* eslint-disable comma-dangle */
   [
     [2, Number, I],
     ['2', String, I],
     [true, Boolean, I],
     [{a: 1}, Object, I],
     [[0, 1, 2], Array, I],
-    [() => 1, Function, f => f()]
+    [() => 1, Function, f => f()],
   ]
-  /* eslint-enable comma-dangle */
-
   .forEach(
     ([expected, T, f]) => {
       const Class = Type({T: [T]});
@@ -71,19 +68,14 @@ test('defining a record type', t => {
 
 test('create instance methods', t => {
 
-  /* eslint-disable */
-  const Maybe = Type({
-    Just: [T.Any]
-    , Nothing: []
-  });
+  const Maybe = Type({Just: [T.Any], Nothing: []});
 
   Maybe.prototype.map = function(fn) {
     return Maybe.case({
-      Nothing: () => Maybe.Nothing()
-      , Just: (v) => Maybe.Just(fn(v))
+      Nothing: R.always(Maybe.Nothing()),
+      Just: R.compose(Maybe.Just, fn),
     }, this);
-  }
-  /* eslint-enable */
+  };
 
   const just = Maybe.Just(1);
   const nothing = Maybe.Nothing();
@@ -97,23 +89,14 @@ test('create instance methods', t => {
 
 test('create instance methods declaratively', t => {
 
-  /* eslint-disable */
-  const Maybe = Class(
-    'Maybe'
-    ,{ Just: [T.Any]
-    , Nothing: []
-    }
-    ,{
-      map( fn ){
-        return Maybe.case({
-          Nothing: () => Maybe.Nothing()
-          , Just: (v) => Maybe.Just(fn(v))
-        }, this)
-      }
-    }
-  );
-
-  /* eslint-enable */
+  const Maybe = Class('Maybe', {Just: [T.Any], Nothing: []}, {
+    map(fn) {
+      return Maybe.case({
+        Nothing: R.always(Maybe.Nothing()),
+        Just: R.compose(Maybe.Just, fn),
+      }, this);
+    },
+  });
 
   const just = Maybe.Just(1);
   const nothing = Maybe.Nothing();
@@ -302,10 +285,7 @@ test('Destructuring assignment to extract values', t => {
 });
 
 test('Recursive Union Types', t => {
-  /* eslint-disable no-var */
-  var List =
-    Type({Nil: [], Cons: [T.Any, List]});
-  /* eslint-enable no-var */
+  const List = Type({Nil: [], Cons: [T.Any, undefined]});
 
   const toString =
     List.case({
@@ -340,10 +320,7 @@ test('Disabling Type Checking', t => {
 });
 
 test('Use placeholder for cases without matches', t => {
-  /* eslint-disable no-var */
-  var List =
-    Type({Nil: [], Cons: [T.Any, List]});
-  /* eslint-disable no-var */
+  const List = Type({Nil: [], Cons: [T.Any, undefined]});
 
   t.equal(
     'Nil'
