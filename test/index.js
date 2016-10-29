@@ -21,7 +21,6 @@ const eq = (...args) => {
   const [actual, expected] = args;
   assert.strictEqual(Z.toString(actual), Z.toString(expected));
   assert.strictEqual(Z.equals(actual, expected), true);
-  assert.deepEqual(actual, expected);
 };
 
 //    throws :: (Function, TypeRep a, String) -> Undefined !
@@ -73,6 +72,12 @@ test('defining a record type', () => {
 test('create instance methods', () => {
   const Maybe = Type({Just: [$.Any], Nothing: []});
 
+  Maybe.prototype['fantasy-land/equals'] = function(other) {
+    return this._name === 'Nothing' ?
+      other._name === 'Nothing' :
+      other._name === 'Just' && Z.equals(other[0], this[0]);
+  };
+
   Maybe.prototype.map = function(f) {
     return Maybe.case({
       Nothing: R.always(Maybe.Nothing),
@@ -80,15 +85,17 @@ test('create instance methods', () => {
     }, this);
   };
 
-  const just = Maybe.Just(1);
-  just.map(R.add(1)); // => Just(2)
-
-  eq(Maybe.Nothing.map(R.add(1))._name, 'Nothing');
-  eq(Maybe.Just(4)[0], 4);
+  eq(Maybe.Nothing.map(Math.sqrt), Maybe.Nothing);
+  eq(Maybe.Just(9).map(Math.sqrt), Maybe.Just(3));
 });
 
 test('create instance methods declaratively', () => {
   const Maybe = Class('Maybe', {Just: [$.Any], Nothing: []}, {
+    'fantasy-land/equals'(other) {
+      return this._name === 'Nothing' ?
+        other._name === 'Nothing' :
+        other._name === 'Just' && Z.equals(other[0], this[0]);
+    },
     map(f) {
       return Maybe.case({
         Nothing: R.always(Maybe.Nothing),
@@ -97,12 +104,8 @@ test('create instance methods declaratively', () => {
     },
   });
 
-  const just = Maybe.Just(1);
-  const nothing = Maybe.Nothing;
-  just.map(R.add(1)); // => Just(2)
-
-  eq(nothing.map(R.add(1))._name, 'Nothing');
-  eq(Maybe.Just(4)[0], 4);
+  eq(Maybe.Nothing.map(Math.sqrt), Maybe.Nothing);
+  eq(Maybe.Just(9).map(Math.sqrt), Maybe.Just(3));
 });
 
 test('Fields can be described in terms of other types', () => {
