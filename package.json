@@ -11,7 +11,6 @@
     "test": "make lint test"
   },
   "dependencies": {
-    "ramda": "0.22.x",
     "sanctuary-def": "github:sanctuary-js/sanctuary-def",
     "sanctuary-type-classes": "0.3.x"
   },
@@ -19,6 +18,7 @@
     "eslint": "2.9.x",
     "istanbul": "0.4.x",
     "mocha": "3.x.x",
+    "ramda": "0.22.x",
     "sanctuary-style": "0.3.x",
     "transcribe": "0.5.x",
     "xyz": "1.1.x"

@@ -1,6 +1,5 @@
 'use strict';
 
-const curryN = require('ramda/src/curryN');
 const $ = require('sanctuary-def');
 const Z = require('sanctuary-type-classes');
 
@@ -30,15 +29,9 @@ const createIterator = function() {
 };
 
 const staticCase = (options, b, ...args) => {
-  if (b._name in options) {
-    return options[b._name](...Z.concat(Z.map(k => b[k], b._keys), args));
-  } else if ('_' in options) {
-    return options._(b);
-  }
-
-  // caseOn is untyped
-  // so this is possible
-  throw new TypeError('Non exhaustive case statement');
+  return b._name in options ?
+    options[b._name](...Z.concat(Z.map(k => b[k], b._keys), args)) :
+    options._(b);
 };
 
 const ObjConstructorOf = (prototype, keys, name, r) =>
@@ -61,7 +54,8 @@ const CreateCaseConstructor = (def, prototype, typeName, cases, k) => {
           {},
           [recordType, recordType],
           t => ObjConstructorOf(prototype, keys, k, t)),
-    [k]:
+    [k]: isArray && type.length === 0 ?
+      ObjConstructorOf(prototype, keys, k, {}) :
       def(`${typeName}.${k}`,
           {},
           Z.concat(types, [recordType]),
@@ -127,10 +121,6 @@ module.exports = opts => {
 
     Type.case.toString =
     Type.case.inspect = staticCaseDef.toString;
-
-    // caseOn opts out of typing because I'm
-    // not smart enough to do it efficiently
-    Type.caseOn = curryN(3, staticCase);
 
     return Object.assign(Type, ...constructors);
   };

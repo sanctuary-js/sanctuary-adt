@@ -28,7 +28,7 @@ const eq = (...args) => {
 const throws = (...args) => {
   assert.strictEqual(args.length, 3);
   const [f, type, message] = args;
-  assert.throws(f, type, message);
+  assert.throws(f, err => err.constructor === type && err.message === message);
 };
 
 
@@ -75,16 +75,15 @@ test('create instance methods', () => {
 
   Maybe.prototype.map = function(f) {
     return Maybe.case({
-      Nothing: R.always(Maybe.Nothing()),
+      Nothing: R.always(Maybe.Nothing),
       Just: R.compose(Maybe.Just, f),
     }, this);
   };
 
   const just = Maybe.Just(1);
-  const nothing = Maybe.Nothing();
   just.map(R.add(1)); // => Just(2)
 
-  eq(nothing.map(R.add(1))._name, 'Nothing');
+  eq(Maybe.Nothing.map(R.add(1))._name, 'Nothing');
   eq(Maybe.Just(4)[0], 4);
 });
 
@@ -92,14 +91,14 @@ test('create instance methods declaratively', () => {
   const Maybe = Class('Maybe', {Just: [$.Any], Nothing: []}, {
     map(f) {
       return Maybe.case({
-        Nothing: R.always(Maybe.Nothing()),
+        Nothing: R.always(Maybe.Nothing),
         Just: R.compose(Maybe.Just, f),
       }, this);
     },
   });
 
   const just = Maybe.Just(1);
-  const nothing = Maybe.Nothing();
+  const nothing = Maybe.Nothing;
   just.map(R.add(1)); // => Just(2)
 
   eq(nothing.map(R.add(1))._name, 'Nothing');
@@ -122,7 +121,7 @@ test('Fields can be described in terms of other types', () => {
 test('The values of a type can also have no fields at all', () => {
   const NotifySetting = Type({Mute: [], Vibrate: [], Sound: [$.Number]});
 
-  eq('Mute', NotifySetting.Mute()._name);
+  eq('Mute', NotifySetting.Mute._name);
 });
 
 test('If a field value does not match the spec an error is thrown', () => {
@@ -153,7 +152,7 @@ test('Switching on union types', () => {
       Left: () => ({x: player.x - 1, y: player.y}),
     }, action);
 
-  eq(advancePlayer(Action.Up(), player), {x: 0, y: -1});
+  eq(advancePlayer(Action.Up, player), {x: 0, y: -1});
 });
 
 test('Switch on union types point free', () => {
@@ -186,21 +185,6 @@ test('Switch on union types point free', () => {
   }
 });
 
-test('Pass extra args to case via caseOn', () => {
-  const Action = Type({Up: [], Right: [], Down: [], Left: []});
-  const player = {x: 0, y: 0};
-
-  const advancePlayer = Action.caseOn({
-    Up: (p, ...extra) => ['Up', p, ...extra],
-    Right: (p, ...extra) => ['Down', p, ...extra],
-    Down: (p, ...extra) => ['Left', p, ...extra],
-    Left: (p, ...extra) => ['Right', p, ...extra],
-  });
-
-  eq(advancePlayer(Action.Up(), player, 1, 2, 3),
-     ['Up', {x: 0, y: 0}, 1, 2, 3]);
-});
-
 test('Destructuring assignment to extract values', () => {
   const Point = Type({Point: {x: $.Number, y: $.Number}});
   const [x, y] = Point.PointOf({x: 0, y: 0});
@@ -216,7 +200,7 @@ test('Recursive Union Types', () => {
     Nil: () => 'Nil',
   });
 
-  const list = List.Cons(1, List.Cons(2, List.Cons(3, List.Nil())));
+  const list = List.Cons(1, List.Cons(2, List.Cons(3, List.Nil)));
 
   eq(toString(list), '1 : 2 : 3 : Nil');
 });
@@ -232,18 +216,8 @@ test('Disabling Type Checking', () => {
 test('Use placeholder for cases without matches', () => {
   const List = Type({Nil: [], Cons: [$.Any, undefined]});
 
-  eq(List.case({Cons: () => 'Cons', _: () => 'Nil'}, List.Nil()), 'Nil');
-  eq(List.Nil().case({Cons: () => 'Cons', _: () => 'Nil'}), 'Nil');
-});
-
-test('caseOn throws an error when not all cases are covered', () => {
-  const NotifySetting = Type({Mute: [], Vibrate: [], Sound: [$.Number]});
-
-  const thunk = () => {
-    NotifySetting.caseOn({Vibrate: () => 'Mute'}, NotifySetting.Mute(), 1, 2);
-  };
-
-  throws(thunk, TypeError, 'Non exhaustive case statement');
+  eq(List.case({Cons: () => 'Cons', _: () => 'Nil'}, List.Nil), 'Nil');
+  eq(List.Nil.case({Cons: () => 'Cons', _: () => 'Nil'}), 'Nil');
 });
 
 test('Create a Type with no cases', () => {
