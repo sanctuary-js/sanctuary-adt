@@ -81,39 +81,29 @@ module.exports = opts => {
       const types = isArray ? type : values(type);
       const recordType = $.RecordType(isArray ? zipObj(keys, types) : type);
 
-      Type[`${name}Of`] =
-        def(`${unprefixedTypeName}.${name}Of`,
-            {},
-            [recordType, recordType],
-            r => {
-              const prototype = Object.create(_prototype);
-              prototype._keys = keys;
-              prototype._name = name;
-              prototype.case = prototype$case;
-              prototype['@@type'] = typeName;
-              prototype[Symbol.iterator] = createIterator;
-              Object.keys(r).forEach(k => { prototype[k] = r[k]; });
-              return prototype;
-            });
+      const of =
+      def(`${unprefixedTypeName}.${name}Of`,
+          {},
+          [recordType, recordType],
+          r => {
+            const prototype = Object.create(_prototype);
+            prototype._keys = keys;
+            prototype._name = name;
+            prototype.case = prototype$case;
+            prototype['@@type'] = typeName;
+            prototype[Symbol.iterator] = createIterator;
+            Object.keys(r).forEach(k => { prototype[k] = r[k]; });
+            return prototype;
+          });
 
-      Type[name] =
-        def(`${unprefixedTypeName}.${name}`,
-            {},
-            Z.concat(types, [recordType]),
-            (...args) => {
-              const prototype = Object.create(_prototype);
-              prototype._keys = keys;
-              prototype._name = name;
-              prototype.case = prototype$case;
-              prototype['@@type'] = typeName;
-              prototype[Symbol.iterator] = createIterator;
-              keys.forEach((k, idx) => { prototype[k] = args[idx]; });
-              return prototype;
-            });
+      const ctor =
+      def(`${unprefixedTypeName}.${name}`,
+          {},
+          Z.concat(types, [recordType]),
+          (...args) => of(zipObj(keys, args)));
 
-      if (isArray && type.length === 0) {
-        Type[name] = Type[name]();
-      }
+      Type[`${name}Of`] = of;
+      Type[name] = isArray && type.length === 0 ? ctor() : ctor;
     });
 
     return Type;
