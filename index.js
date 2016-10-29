@@ -188,7 +188,7 @@ const Setup = function({check, ENV = T.env}) {
       Object.keys(rawCases);
 
     const env =
-      ENV.concat(Type);
+      ENV.concat([Type]);
 
     const def = T.create({checkTypes: check, env});
 
