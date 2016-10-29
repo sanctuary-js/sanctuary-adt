@@ -1,9 +1,11 @@
 'use strict';
 
-const test = require('tape');
-const UnionType = require('../');
 const R = require('ramda');
 const T = require('sanctuary-def');
+const test = require('tape');
+
+const UnionType = require('..');
+
 
 const UT = UnionType({
   env: T.env,

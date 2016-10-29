@@ -1,11 +1,11 @@
 'use strict';
 
+const curryN = require('ramda/src/curryN');
+const map = require('ramda/src/map');
 const T = require('sanctuary-def');
 
-const B = (f, g) => (...args) => f(g(...args));
 
-const map = require('ramda/src/map');
-const curryN = require('ramda/src/curryN');
+const B = (f, g) => (...args) => f(g(...args));
 
 const values = o =>
   Array.isArray(o)
