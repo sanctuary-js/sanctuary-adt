@@ -5,15 +5,13 @@ const map = require('ramda/src/map');
 const $ = require('sanctuary-def');
 
 
-const B = (f, g) => (...args) => f(g(...args));
-
+//    values :: Any -> Array a
 const values = o =>
   Array.isArray(o) ? o : Object.keys(o).map(k => o[k]);
 
-const zipObj = ks => vs =>
-  ks.length ? Object.assign(...ks.map((k, i) => ({[k]: vs[i]}))) : {};
-
-const unapply = f => (...values) => f(values);
+//    zipObj :: (Array String, Array a) -> StrMap a
+const zipObj = (ks, vs) =>
+  ks.reduce((acc, k, idx) => { acc[k] = vs[idx]; return acc; }, {});
 
 const BuiltInType = function(t) {
   switch (t.name) {
@@ -71,21 +69,12 @@ const CaseRecordType = function(keys, enums) {
   );
 };
 
-const ObjConstructorOf = prototype => (keys, name) => r =>
-  Object.assign(
-    Object.create(prototype),
-    r,
-    {
-      _keys: keys,
-      _name: name,
-      [Symbol.iterator]: createIterator,
-    }
-  );
-
-const RecursiveType = Type => v => typeof v === 'undefined' ? Type : v;
-
-const processRawCases = (Type, rawCases) =>
-  map(map(B(BuiltInType, RecursiveType(Type))), rawCases);
+const ObjConstructorOf = (prototype, keys, name, r) =>
+  Object.assign(Object.create(prototype), r, {
+    _keys: keys,
+    _name: name,
+    [Symbol.iterator]: createIterator,
+  });
 
 const CreateCaseConstructor = function(def, prototype, typeName, cases) {
   return function createCaseConstructor(k) {
@@ -93,20 +82,20 @@ const CreateCaseConstructor = function(def, prototype, typeName, cases) {
     const isArray = Array.isArray(type);
     const keys = Object.keys(type);
     const types = isArray ? type : values(type);
-    const recordType = $.RecordType(isArray ? zipObj(keys)(types) : type);
+    const recordType = $.RecordType(isArray ? zipObj(keys, types) : type);
 
     return {
       [`${k}Of`]:
         def(`${typeName}.${k}Of`,
             {},
             [recordType, recordType],
-            ObjConstructorOf(prototype)(keys, k)),
+            t => ObjConstructorOf(prototype, keys, k, t)),
       [k]:
         def(`${typeName}.${k}`,
             {},
             types.concat(recordType),
-            B(ObjConstructorOf(prototype)(keys, k),
-              unapply(zipObj(keys)))),
+            (...args) =>
+              ObjConstructorOf(prototype, keys, k, zipObj(keys, args))),
     };
   };
 };
@@ -116,16 +105,17 @@ module.exports = opts => {
 
   const def = $.create(opts);
 
-  const CreateUnionType = function(typeName, rawCases, prototype = {}) {
+  const CreateUnionType = function(typeName, _cases, prototype = {}) {
     //    Type :: Type
     const Type = $.NullaryType(
       typeName,
       x => x != null && x['@@type'] === typeName
     );
-    const keys = Object.keys(rawCases);
+    const keys = Object.keys(_cases);
     const env = opts.env.concat([Type]);
     const def = $.create({checkTypes: opts.checkTypes, env});
-    const cases = processRawCases(Type, rawCases);
+    const cases =
+      map(map(x => BuiltInType(x === undefined ? Type : x)), _cases);
     const createCaseConstructor =
       CreateCaseConstructor(def, prototype, typeName, cases);
     const constructors = keys.map(createCaseConstructor);
