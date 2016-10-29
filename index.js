@@ -4,6 +4,9 @@ const $ = require('sanctuary-def');
 const Z = require('sanctuary-type-classes');
 
 
+//    stripNamespace :: String -> String
+const stripNamespace = s => s.slice(s.indexOf('/') + 1);
+
 //    values :: Any -> Array a
 const values = o =>
   Array.isArray(o) ? o : Z.map(k => o[k], Object.keys(o));
@@ -41,6 +44,7 @@ const ObjConstructorOf = (prototype, keys, name, r) =>
   });
 
 const CreateCaseConstructor = (def, prototype, typeName, cases, k) => {
+  const unprefixedTypeName = stripNamespace(typeName);
   const type = cases[k];
   const isArray = Array.isArray(type);
   const keys = Object.keys(type);
@@ -49,13 +53,13 @@ const CreateCaseConstructor = (def, prototype, typeName, cases, k) => {
 
   return {
     [`${k}Of`]:
-      def(`${typeName}.${k}Of`,
+      def(`${unprefixedTypeName}.${k}Of`,
           {},
           [recordType, recordType],
           t => ObjConstructorOf(prototype, keys, k, t)),
     [k]: isArray && type.length === 0 ?
       ObjConstructorOf(prototype, keys, k, {}) :
-      def(`${typeName}.${k}`,
+      def(`${unprefixedTypeName}.${k}`,
           {},
           Z.concat(types, [recordType]),
           (...args) =>
@@ -69,6 +73,7 @@ module.exports = opts => {
   const def = $.create(opts);
 
   const CreateUnionType = (typeName, _cases, prototype) => {
+    const unprefixedTypeName = stripNamespace(typeName);
     //    Type :: Type
     const Type = $.NullaryType(
       typeName,
@@ -87,7 +92,7 @@ module.exports = opts => {
       $.RecordType(Z.map(x => $.Function(Z.concat(values(x), [a])), cases));
 
     const instanceCaseDef =
-      def(`${typeName}::case`,
+      def(`${unprefixedTypeName}::case`,
           {},
           [caseRecordType, a],
           function(t) { return staticCase(t, this); });
@@ -106,7 +111,7 @@ module.exports = opts => {
     Type.prototype.case.inspect = instanceCaseDef.toString;
 
     const staticCaseDef =
-      def(`${typeName}.case`,
+      def(`${unprefixedTypeName}.case`,
           {},
           [caseRecordType, Type, a],
           staticCase);
