@@ -17,14 +17,14 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "eslint": "^3.9.0",
-    "istanbul": "^0.4.5",
-    "sanctuary-style": "^0.2.0",
-    "tape": "^4.6.2",
-    "xyz": "^1.1.0"
+    "eslint": "3.9.x",
+    "istanbul": "0.4.x",
+    "sanctuary-style": "0.2.x",
+    "tape": "4.6.x",
+    "xyz": "1.1.x"
   },
   "dependencies": {
-    "ramda": "^0.22.1",
+    "ramda": "0.22.x",
     "sanctuary-def": "github:sanctuary-js/sanctuary-def"
   }
 }
