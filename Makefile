@@ -26,4 +26,4 @@ setup:
 .PHONY: test
 test:
 	$(ISTANBUL) cover "test/test.js" -- --recursive
-	$(ISTANBUL) check-coverage --branches 98
+	$(ISTANBUL) check-coverage --branches 100
