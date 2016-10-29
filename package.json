@@ -4,9 +4,7 @@
   "description": "Descendant of paldepind/union-type with more descriptive error messages",
   "main": "index.js",
   "scripts": {
-    "test": "npm run test:test && npm run test:lint",
-    "test:test": "node test/test.js",
-    "test:lint": "eslint -c .eslintrc ."
+    "test": "make lint test"
   },
   "repository": {
     "type": "git",

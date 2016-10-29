@@ -16,7 +16,7 @@ LICENSE:
 .PHONY: lint
 lint:
 	$(ESLINT) --env node -- index.js
-	$(ESLINT) --env node --env mocha -- test/test.js
+	$(ESLINT) --env node --env mocha -- test/index.js
 
 
 .PHONY: setup
@@ -26,5 +26,5 @@ setup:
 
 .PHONY: test
 test:
-	$(ISTANBUL) cover node_modules/.bin/_mocha -- --ui tdd -- test/test.js
+	$(ISTANBUL) cover node_modules/.bin/_mocha -- --ui tdd -- test/index.js
 	$(ISTANBUL) check-coverage --branches 100
