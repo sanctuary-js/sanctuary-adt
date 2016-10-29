@@ -85,7 +85,7 @@ module.exports = opts => {
     const env = Z.concat(opts.env, [Type]);
     const def = $.create({checkTypes: opts.checkTypes, env});
     const cases =
-      Z.map(xs => Z.map(x => x === undefined ? Type : typeof x === 'function' ? $.NullaryType(`[${x}]`, x) : x, xs),  // eslint-disable-line max-len
+      Z.map(xs => Z.map(x => x === undefined ? Type : x, xs),
             _cases);
     const constructors =
       Z.map(k => CreateCaseConstructor(def, prototype, typeName, cases, k),

@@ -107,7 +107,7 @@ test('create instance methods declaratively', () => {
 });
 
 test('Fields can be described in terms of other types', () => {
-  const Point = Type({Point: {x: Number, y: Number}});
+  const Point = Type({Point: {x: $.Number, y: $.Number}});
 
   const Shape = Type({
     Circle: [$.Number, Point],
@@ -126,7 +126,7 @@ test('The values of a type can also have no fields at all', () => {
 });
 
 test('If a field value does not match the spec an error is thrown', () => {
-  const Point = Named('Point', {Point: {x: Number, y: Number}});
+  const Point = Named('Point', {Point: {x: $.Number, y: $.Number}});
 
   throws(() => { Point.Point(4, 'foo'); },
          TypeError,
