@@ -71,6 +71,27 @@ test('defining a record type', () => {
   eq([x, y], [x1, y1]);
 });
 
+test('create instance methods', () => {
+  const Maybe = Type({Just: [$.Any], Nothing: []});
+
+  const Nothing = Maybe.Nothing();
+  const Just = Maybe.Just;
+
+  Maybe.prototype['fantasy-land/equals'] = function(other) {
+    return this._name === 'Nothing' ?
+      other._name === 'Nothing' :
+      other._name === 'Just' && Z.equals(other[0], this[0]);
+  };
+
+  Maybe.prototype.map = function(f) {
+    return Maybe.case({Nothing: R.always(Nothing), Just: R.compose(Just, f)},
+                      this);
+  };
+
+  eq(Nothing.map(Math.sqrt), Nothing);
+  eq(Just(9).map(Math.sqrt), Just(3));
+});
+
 test('create instance methods declaratively', () => {
   const Maybe = Class('my-package/Maybe', {Just: [a], Nothing: []}, {
     'fantasy-land/equals'(other) {

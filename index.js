@@ -62,6 +62,8 @@ module.exports = opts => {
         )(cases);
     };
 
+    Type.prototype = Object.assign(_prototype, {case: prototype$case});
+
     Type.case = function(o, ..._args) {
       return def(
         `${unprefixedTypeName}.case`,
@@ -89,7 +91,6 @@ module.exports = opts => {
             const prototype = Object.create(_prototype);
             prototype._keys = keys;
             prototype._name = name;
-            prototype.case = prototype$case;
             prototype['@@type'] = typeName;
             prototype[Symbol.iterator] = createIterator;
             Object.keys(r).forEach(k => { prototype[k] = r[k]; });
