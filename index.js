@@ -103,7 +103,7 @@ module.exports = opts => {
           (...args) => of(zipObj(keys, args)));
 
       Type[`${name}Of`] = of;
-      Type[name] = isArray && type.length === 0 ? ctor() : ctor;
+      Type[name] = ctor;
     });
 
     return Type;
