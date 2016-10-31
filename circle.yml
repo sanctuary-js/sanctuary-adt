@@ -1,0 +1,12 @@
+dependencies:
+  override:
+    - printf '%s\n' color=false progress=false >.npmrc
+    - make setup
+
+machine:
+  node:
+    version: 6.1.0
+
+test:
+  override:
+    - make lint test
