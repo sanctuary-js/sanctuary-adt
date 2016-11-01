@@ -5,7 +5,7 @@ const assert = require('assert');
 const $ = require('sanctuary-def');
 const Z = require('sanctuary-type-classes');
 
-const UnionType = require('..');
+const {NullaryUnionType, UnaryUnionType, BinaryUnionType, Self, create} = require('..');
 
 
 //    always :: a -> () -> a
@@ -30,26 +30,39 @@ const throws = (...args) => {
 //    a :: Type
 const a = $.TypeVariable('a');
 
+//    b :: Type
+const b = $.TypeVariable('b');
+
 //    Point :: Type
-const Point = UnionType('my-package/Point', {
-  Point: [$.Number, $.Number],
-});
+const Point = NullaryUnionType(
+  'my-package/Point',
+  {Point: [$.Number, $.Number]}
+);
 
 //    Shape :: Type
-const Shape = UnionType('my-package/Shape', {
-  Circle: [Point, $.Number],
-  Rectangle: [Point, Point],
-});
+const Shape = NullaryUnionType(
+  'my-package/Shape',
+  {Circle: [Point, $.Number], Rectangle: [Point, Point]}
+);
 
-//    List :: Type
-const List = UnionType('my-package/List', {
-  Nil: [],
-  Cons: [a, UnionType.Self],
-});
+//    List :: Type -> Type
+const List = UnaryUnionType(
+  'my-package/List',
+  {Nil: [], Cons: [a, Self]},
+  {Nil: () => [], Cons: (head, tail) => [head]}  // TODO: Support recursion here
+);
+
+//    Either :: Type -> Type -> Type
+const Either = BinaryUnionType(
+  'my-package/Either',
+  {Left: [a], Right: [b]},
+  {Left: x => [x], Right: x => []},
+  {Left: x => [], Right: x => [x]}
+);
 
 const def = $.create({
   checkTypes: true,
-  env: Z.concat($.env, [Point, Shape, List]),
+  env: Z.concat($.env, [Point, Shape, List, Either]),
 });
 
 //    dist_ :: (Point, Point) -> Number
@@ -76,25 +89,37 @@ const area_ = Shape.fold({
 //    area :: Shape -> Number
 const area = def('area', {}, [Shape, $.Number], area_);
 
-//    showList :: List a -> String
-const showList = List.fold({
-  Cons: (head, tail) => `Cons(${head}, ${showList(tail)})`,
-  Nil: () => 'Nil',
+//    showList_ :: List a -> String
+const showList_ = List.fold({
+  Cons: (head, tail) => `List.Cons(${Z.toString(head)}, ${showList(tail)})`,
+  Nil: () => 'List.Nil',
 });
+
+//    showList :: List a -> String
+const showList = def('showList', {}, [List(a), $.String], showList_);
+
+//    showEither_ :: Either a b -> String
+const showEither_ = Either.fold({
+  Left: x => `Either.Left(${Z.toString(x)})`,
+  Right: x => `Either.Right(${Z.toString(x)})`,
+});
+
+//    showEither :: Either a b -> String
+const showEither = def('showEither', {}, [Either(a, b), $.String], showEither_);
 
 
 test('TK', () => {
-  throws(() => UnionType('my-package/Point', {Point: [Number, Number]}),
+  throws(() => NullaryUnionType('my-package/Point', {Point: [Number, Number]}),
          TypeError,
          'Invalid value\n' +
          '\n' +
-         'UnionType :: String -> StrMap (Array Type) -> Type\n' +
-         '                                     ^^^^\n' +
-         '                                      1\n' +
+         'NullaryUnionType :: String -> StrMap (Array PossiblyRecursiveType) -> Type\n' +
+         '                                            ^^^^^^^^^^^^^^^^^^^^^\n' +
+         '                                                      1\n' +
          '\n' +
          '1)  function Number() { [native code] } :: Function\n' +
          '\n' +
-         'The value at position 1 is not a member of ‘Type’.\n');
+         'The value at position 1 is not a member of ‘PossiblyRecursiveType’.\n');
 });
 
 test('defining a record type', () => {
@@ -105,7 +130,11 @@ test('defining a record type', () => {
 const equals = x => y => Z.equals(x, y);
 
 test('TK', () => {
-  const Maybe = UnionType('my-package/Maybe', {Nothing: [], Just: [a]});
+  const Maybe = UnaryUnionType(
+    'my-package/Maybe',
+    {Nothing: [], Just: [a]},
+    {Nothing: () => [], Just: x => [x]}
+  );
 
   Maybe.prototype.toString = function() {
     return Maybe.fold({
@@ -131,7 +160,7 @@ test('TK', () => {
          TypeError,
          'Invalid value\n' +
          '\n' +
-         'Maybe.fold :: { Just :: a -> b, Nothing :: () -> b } -> Maybe -> b\n' +
+         'Maybe.fold :: { Just :: a -> b, Nothing :: () -> b } -> Maybe a -> b\n' +
          '              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n' +
          '                                1\n' +
          '\n' +
@@ -163,13 +192,17 @@ test('If a field value does not match the spec an error is thrown', () => {
          '\n' +
          'The value at position 1 is not a member of ‘Number’.\n');
 
-  const Foo = UnionType('my-package/Foo', {Foo: [$.Array(a), $.Array(a)]});
+  const Foo = UnaryUnionType(
+    'my-package/Foo',
+    {Foo: [$.Array(b), $.Array(b)]},
+    {Foo: Z.concat}
+  );
 
   throws(() => Foo.Foo(['a', 'b', 'c'], [1, 2, 3]),
          TypeError,
          'Type-variable constraint violation\n' +
          '\n' +
-         'Foo.Foo :: Array a -> Array a -> Foo\n' +
+         'Foo.Foo :: Array b -> Array b -> Foo b\n' +
          '                 ^          ^\n' +
          '                 1          2\n' +
          '\n' +
@@ -187,23 +220,32 @@ test('If a field value does not match the spec an error is thrown', () => {
          TypeError,
          'Invalid value\n' +
          '\n' +
-         'Foo.fold :: { Foo :: (Array a, Array a) -> b } -> Foo -> b\n' +
+         'Foo.fold :: { Foo :: (Array b, Array b) -> a } -> Foo b -> a\n' +
          '            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n' +
          '                            1\n' +
          '\n' +
          '1)  {} :: Object, StrMap ???\n' +
          '\n' +
-         'The value at position 1 is not a member of ‘{ Foo :: (Array a, Array a) -> b }’.\n');
+         'The value at position 1 is not a member of ‘{ Foo :: (Array b, Array b) -> a }’.\n');
 });
 
 test('Recursive Union Types', () => {
-  eq(showList(List.Nil), 'Nil');
-  eq(showList(List.Cons(1, List.Cons(2, List.Cons(3, List.Nil)))), 'Cons(1, Cons(2, Cons(3, Nil)))');
+  eq(showList_(List.Nil), 'List.Nil');
+  eq(showList_(List.Cons(1, List.Cons(2, List.Cons(3, List.Nil)))), 'List.Cons(1, List.Cons(2, List.Cons(3, List.Nil)))');
+  eq(showList(List.Nil), 'List.Nil');
+  eq(showList(List.Cons(1, List.Cons(2, List.Cons(3, List.Nil)))), 'List.Cons(1, List.Cons(2, List.Cons(3, List.Nil)))');
+});
+
+test('TK', () => {
+  eq(showEither_(Either.Left('XXX')), 'Either.Left("XXX")');
+  eq(showEither_(Either.Right([42])), 'Either.Right([42])');
+  eq(showEither(Either.Left('XXX')), 'Either.Left("XXX")');
+  eq(showEither(Either.Right([42])), 'Either.Right([42])');
 });
 
 test('Disabling Type Checking', () => {
-  const UncheckedUnionType = UnionType.create({checkTypes: false, env: $.env});
-  const Point = UncheckedUnionType('my-package/Point', {Point: [$.Number, $.Number]});
+  const {NullaryUnionType} = create({checkTypes: false, env: $.env});
+  const Point = NullaryUnionType('my-package/Point', {Point: [$.Number, $.Number]});
 
   eq(Point.fold({Point: (x, y) => x + y}, Point.Point('foo', 'bar')), 'foobar');
 });

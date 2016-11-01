@@ -33,6 +33,13 @@
       }, [], t.types);
   };
 
+  //  uniq :: Array a -> Array a
+  var uniq = function(xs) {
+    return xs.reduce(function(xs, x) {
+      return xs.indexOf(x) >= 0 ? xs : xs.concat([x]);
+    }, []);
+  };
+
   //  createUnusedTypeVar :: Array String -> Type
   var createUnusedTypeVar = function(typeVarNames) {
     for (var typeVarName = 'a';
@@ -41,98 +48,162 @@
     return $.TypeVariable(typeVarName);
   };
 
-  //  type0 :: String -> Type
-  var type0 = function(name) {
-    return $.NullaryType(
-      name,
-      function(x) { return x != null && x['@@type'] === name; }
-    );
-  };
-
   //  recTypeRef :: String
   var recTypeRef = '@@functional/recursive-type-reference';
 
   //  Self :: PossiblyRecursiveType
-  var Self = {}; Self[recTypeRef] = true;
+  var Self = {types: {}}; Self[recTypeRef] = true;
 
   //  PossiblyRecursiveType :: Type
   var PossiblyRecursiveType = $.NullaryType(
-    'sanctuary-union-type/Type',
+    'sanctuary-union-type/PossiblyRecursiveType',
     function(x) {
       return x != null &&
              (x[recTypeRef] === true || x['@@type'] === 'sanctuary-def/Type');
     }
   );
 
-  //  create ::
-  //    { checkTypes :: Boolean, env :: Array Type } ->
-  //      String -> StrMap (Array Type) -> Type
+  //  TypeName :: Type
+  var TypeName = $.String;
+
+  //  DataCtorDefs :: Type
+  var DataCtorDefs = $.StrMap($.Array(PossiblyRecursiveType));
+
+  //  Extractors :: Type
+  var Extractors = $.StrMap($.AnyFunction);
+
+  //  isFullyAppliedType :: a -> Boolean
+  var isFullyAppliedType = function(x) {
+    return x != null && x['@@type'] === 'sanctuary-def/Type';
+  };
+
+  //  Type :: Type
+  var Type = $.NullaryType(
+    'sanctuary-union-type/Type',
+    function(x) {
+      return (
+        isFullyAppliedType(x) ||
+        typeof x === 'function' && isFullyAppliedType(function() {
+          var types = [];
+          for (var idx = 0; idx < x.length; idx += 1) types.push($.Unknown);
+          try { return x.apply(null, types); } catch (err) {}
+        }())
+      );
+    }
+  );
+
+  //  fold :: StrMap (a -> b) -> a -> b
+  var fold = function(cases) {
+    return function(member) {
+      return cases[member.tag].apply(null, member.values);
+    };
+  };
+
   var create = function(opts) {
-    var UnionType = $.create({checkTypes: true, env: $.env})(
-      'UnionType',
-      {},
-      [$.String,
-       $.StrMap($.Array(PossiblyRecursiveType)),
-       type0('sanctuary-def/Type')],
-      function(typeName, _cases) {
-        var unprefixedTypeName = typeName.slice(typeName.indexOf('/') + 1);
-        var Type = type0(typeName);
-        var env = Z.concat(opts.env, [Type]);
-        var def = $.create({checkTypes: opts.checkTypes, env: env});
+    var def = $.create({checkTypes: true, env: $.env});
 
-        var cases = Z.map(function(xs) {
-          return Z.map(function(x) {
-            return x[recTypeRef] === true ? Type : x;
-          }, xs);
-        }, _cases);
+    var _UnionType = function(typeName, _cases, extractors$1, extractors$2) {
+      var test = function(x) { return x != null && x['@@type'] === typeName; };
 
-        Type.prototype = {'@@type': typeName};
+      var TypeConstructor_ = (function(arity) {
+        switch (arity) {
+          case 0: return $.NullaryType;
+          case 1: return $.UnaryType;
+          case 2: return $.BinaryType;
+        }
+      }(arguments.length - 2));
 
-        Object.keys(cases).forEach(function(tag) {
-          var types = values(cases[tag]);
+      var TypeConstructor = TypeConstructor_.apply(
+        null,
+        Z.concat([typeName, test],
+                 Z.map(fold, Array.prototype.slice.call(arguments, 2)))
+      );
 
-          var construct =
-          def(unprefixedTypeName + '.' + tag,
-              {},
-              Z.concat(types, [Type]),
-              function() {
-                var o = Object.create(Type.prototype);
-                o.tag = tag;
-                o.values = Array.prototype.slice.call(arguments);
-                return o;
-              });
+      TypeConstructor.prototype = {'@@type': typeName};
 
-          Type[tag] = types.length === 0 ? construct() : construct;
-        });
+      //  uniqTypeVarNames :: Array String
+      var uniqTypeVarNames =
+      uniq(Z.chain(getTypeVarNames, Z.chain(identity, values(_cases))));
 
-        var TypeVar =
-        createUnusedTypeVar(Z.chain(getTypeVarNames,
-                                    Z.chain(identity, values(cases))));
+      //  TypeVars :: Array Type
+      var TypeVars = Z.map($.TypeVariable, uniqTypeVarNames);
 
-        var RecordType = $.RecordType(Z.map(function(types) {
-          return $.Function(Z.concat(types, [TypeVar]));
-        }, cases));
+      //  NullaryType :: Type
+      var NullaryType = typeof TypeConstructor === 'function' ?
+        TypeConstructor.apply(null, TypeVars) :
+        TypeConstructor;
 
-        Type.fold =
-        def(unprefixedTypeName + '.fold',
+      var cases = Z.map(function(xs) {
+        return Z.map(function(x) {
+          return x[recTypeRef] === true ? NullaryType : x;
+        }, xs);
+      }, _cases);
+
+      var env = Z.concat(opts.env, [NullaryType]);
+      var def = $.create({checkTypes: opts.checkTypes, env: env});
+
+      var unprefixedTypeName = typeName.slice(typeName.indexOf('/') + 1);
+
+      Object.keys(cases).forEach(function(tag) {
+        var types = values(cases[tag]);
+
+        var construct =
+        def(unprefixedTypeName + '.' + tag,
             {},
-            [RecordType, Type, TypeVar],
-            function(cases, member) {
-              return cases[member.tag].apply(null, member.values);
+            Z.concat(types, [NullaryType]),
+            function() {
+              var o = Object.create(TypeConstructor.prototype);
+              o.tag = tag;
+              o.values = Array.prototype.slice.call(arguments);
+              return o;
             });
 
-        return Type;
-      }
-    );
+        TypeConstructor[tag] = types.length === 0 ? construct() : construct;
+      });
 
-    UnionType.Self = Self;
+      //  TypeVar :: Type
+      var TypeVar = createUnusedTypeVar(uniqTypeVarNames);
 
-    return UnionType;
+      //  RecordType :: Type
+      var RecordType = $.RecordType(Z.map(function(types) {
+        return $.Function(Z.concat(types, [TypeVar]));
+      }, cases));
+
+      TypeConstructor.fold =
+      def(unprefixedTypeName + '.fold',
+          {},
+          [RecordType, NullaryType, TypeVar],
+          function(cases, member) {
+            return cases[member.tag].apply(null, member.values);
+          });
+
+      return TypeConstructor;
+    };
+
+    return {
+      NullaryUnionType:
+        def('NullaryUnionType',
+            {},
+            [TypeName, DataCtorDefs, Type],
+            _UnionType),
+      UnaryUnionType:
+        def('UnaryUnionType',
+            {},
+            [TypeName, DataCtorDefs, Extractors, Type],
+            _UnionType),
+      BinaryUnionType:
+        def('BinaryUnionType',
+            {},
+            [TypeName, DataCtorDefs, Extractors, Extractors, Type],
+            _UnionType)
+    };
   };
 
   var UnionType = create({checkTypes: true, env: $.env});
 
   UnionType.create = create;
+
+  UnionType.Self = Self;
 
   return UnionType;
 
