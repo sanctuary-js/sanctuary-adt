@@ -17,36 +17,36 @@
   'use strict';
 
   //  identity :: a -> a
-  var identity = function(x) { return x; };
+  function identity(x) { return x; }
 
   //  values :: StrMap a -> Array a
-  var values = function(o) {
+  function values(o) {
     return Z.map(function(k) { return o[k]; }, Object.keys(o));
-  };
+  }
 
   //  getTypeVarNames :: Type -> Array String
-  var getTypeVarNames = function recur(t) {
+  function getTypeVarNames(t) {
     return t.type === 'VARIABLE' ?
       [t.name] :
       Z.reduce(function(typeVarNames, r) {
-        return Z.concat(typeVarNames, recur(r.type));
+        return Z.concat(typeVarNames, getTypeVarNames(r.type));
       }, [], t.types);
-  };
+  }
 
   //  uniq :: Array a -> Array a
-  var uniq = function(xs) {
+  function uniq(xs) {
     return xs.reduce(function(xs, x) {
       return xs.indexOf(x) >= 0 ? xs : xs.concat([x]);
     }, []);
-  };
+  }
 
   //  createUnusedTypeVar :: Array String -> Type
-  var createUnusedTypeVar = function(typeVarNames) {
+  function createUnusedTypeVar(typeVarNames) {
     for (var typeVarName = 'a';
          typeVarNames.indexOf(typeVarName) >= 0;
          typeVarName = String.fromCharCode(typeVarName.charCodeAt(0) + 1)) {}
     return $.TypeVariable(typeVarName);
-  };
+  }
 
   //  recTypeRef :: String
   var recTypeRef = '@@functional/recursive-type-reference';
@@ -73,9 +73,9 @@
   var Extractors = $.StrMap($.AnyFunction);
 
   //  isFullyAppliedType :: a -> Boolean
-  var isFullyAppliedType = function(x) {
+  function isFullyAppliedType(x) {
     return x != null && x['@@type'] === 'sanctuary-def/Type';
-  };
+  }
 
   //  Type :: Type
   var Type = $.NullaryType(
@@ -93,17 +93,17 @@
   );
 
   //  fold :: StrMap (a -> b) -> a -> b
-  var fold = function(cases) {
+  function fold(cases) {
     return function(member) {
       return cases[member.tag].apply(null, member.values);
     };
-  };
+  }
 
-  var create = function(opts) {
+  function create(opts) {
     var def = $.create({checkTypes: true, env: $.env});
 
-    var _UnionType = function(typeName, _cases, extractors$1, extractors$2) {
-      var test = function(x) { return x != null && x['@@type'] === typeName; };
+    function _UnionType(typeName, _cases, extractors$1, extractors$2) {
+      function test(x) { return x != null && x['@@type'] === typeName; }
 
       var TypeConstructor_ = (function(arity) {
         switch (arity) {
@@ -178,7 +178,7 @@
           });
 
       return TypeConstructor;
-    };
+    }
 
     return {
       NullaryUnionType:
@@ -197,7 +197,7 @@
             [TypeName, DataCtorDefs, Extractors, Extractors, Type],
             _UnionType)
     };
-  };
+  }
 
   var UnionType = create({checkTypes: true, env: $.env});
 
